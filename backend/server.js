@@ -9,6 +9,7 @@ const authRoutes = require("./src/routes/authRoutes");
 const projectRoutes = require("./src/routes/projectRoutes");
 const seedRoutes = require("./src/routes/seedRoutes");
 const transactionRoutes = require("./src/routes/transactionRoutes");
+const roomRoutes = require("./src/routes/roomRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -25,6 +26,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/seeds", seedRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/rooms", roomRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

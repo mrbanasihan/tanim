@@ -1,5 +1,6 @@
 const express = require("express");
 const SeedController = require("../controllers/seedController");
+const TransactionController = require("../controllers/transactionController");
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
 
@@ -7,6 +8,11 @@ const router = express.Router();
 
 router.get("/", authenticate, SeedController.getAll);
 router.get("/:id", authenticate, SeedController.getById);
+router.get(
+  "/:id/transactions",
+  authenticate,
+  TransactionController.getBySeedId,
+);
 router.post(
   "/",
   authenticate,

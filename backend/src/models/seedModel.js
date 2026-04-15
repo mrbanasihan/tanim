@@ -1,12 +1,12 @@
 const db = require("../services/db");
 
 const SeedModel = {
-  async getAl(filters = {}) {
+  async getAll(filters = {}) {
     let query = `
-            SELECT s.*, p.project_name
-            FROM seed_lots s
-            LEFT JOIN projects p ON s.project_id = p.project_id
-            WHERE s.is_active = true
+            SELECT s.*, p.project_name as project_name
+            FROM seed_lot s
+            LEFT JOIN project p ON s.project_id = p.project_id
+            WHERE 1=1
         `;
 
     const params = [];
@@ -22,13 +22,8 @@ const SeedModel = {
       params.push(filters.variety);
     }
 
-    if (filters.classification) {
-      query += ` AND s.classification = $${paramIndex++}`;
-      params.push(filters.classification);
-    }
-
     if (filters.search) {
-      query += ` AND (s.batch_nam ILIKE $${paramIndex++} OR s.crop_type ILIKE $${paramIndex++} OR s.variety ILIKE $${paramIndex++})`;
+      query += ` AND (s.batch_name ILIKE $${paramIndex++} OR s.crop_type ILIKE $${paramIndex++} OR s.variety ILIKE $${paramIndex++})`;
       params.push(
         `%${filters.search}%`,
         `%${filters.search}%`,
@@ -38,7 +33,6 @@ const SeedModel = {
 
     query += ` ORDER BY s.created_at DESC`;
 
-    // Pagination
     if (filters.limit) {
       query += ` LIMIT $${paramIndex++}`;
       params.push(filters.limit);
@@ -55,18 +49,33 @@ const SeedModel = {
 
   async getById(seedId) {
     const query = `
-            SELECT s.*, p.project_name
-            FROM seed_lots s
-            LEFT JOIN projects p ON s.project_id = p.project_id
-            WHERE s.seed_id = $1 AND s.is_active = true
+            SELECT s.*, p.project_name as project_name
+            FROM seed_lot s
+            LEFT JOIN project p ON s.project_id = p.project_id
+            WHERE s.seed_id = $1
         `;
     const result = await db.query(query, [seedId]);
     return result.rows[0];
   },
 
-  async create(data, createdBy) {
+  async create(data) {
+    // Generate batch_name
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    let batchName = `${year}-${month}`;
+
+    if (data.project_id) {
+      const projectQuery = `SELECT project_name FROM project WHERE project_id = $1`;
+      const projectResult = await db.query(projectQuery, [data.project_id]);
+      if (projectResult.rows[0]) {
+        batchName += `-${projectResult.rows[0].project_name}`;
+      }
+    }
+    batchName += `-${data.crop_type}-${data.variety}`;
+
     const query = `
-            INSERT INTO seed_lots (
+            INSERT INTO seed_lot (
                 seed_id, project_id, batch_name, crop_type, variety, classification,
                 germination_rate, initial_quantity, cleaned_quantity, current_quantity,
                 date_received, remarks, is_active, created_by, created_at
@@ -75,47 +84,50 @@ const SeedModel = {
             RETURNING *
       `;
     const result = await db.query(query, [
-      data.projectId || null,
-      data.batchName,
-      data.cropType,
+      data.project_id || null,
+      batchName,
+      data.crop_type,
       data.variety,
       data.classification,
-      data.germinationRate,
+      data.germination_rate || null,
       data.initial_quantity,
-      data.cleaned_quantity,
-      data.current_quantity,
-      data.current_quantity || data.initial_quantity,
-      data.date_received,
-      data.remarks,
-      createdBy,
+      data.cleaned_quantity || null,
+      data.cleaned_quantity || data.initial_quantity,
+      null,
+      data.remarks || null,
+      data.created_by,
     ]);
-
     return result.rows[0];
   },
 
   async update(seedId, data) {
     const query = `
-        UPDATE seed_lots 
-        SET project_id = $1, batch_name = $2, crop_type = $3, variety = $4,
-            classification = $5, germination_rate = $6, initial_quantity = $7,
-            cleaned_quantity = $8, current_quantity = $9, date_received = $10,
-            remarks = $11
-        WHERE seed_id = $12 AND is_active = true
+        UPDATE seed_lot
+        SET project_id = $1,
+            crop_type = $2,
+            variety = $3,
+            classification = $4,
+            germination_rate = $5,
+            initial_quantity = $6,
+            cleaned_quantity = $7,
+            current_quantity = $8,
+            date_received = $9,
+            remarks = $10,
+            updated_at = NOW()
+        WHERE seed_id = $11
         RETURNING *
     `;
     const result = await db.query(query, [
-      data.projectId || null,
-      data.batchName,
-      data.cropType,
+      data.project_id || null,
+      data.crop_type,
       data.variety,
       data.classification,
-      data.germinationRate,
-      data.initial_quantity,
-      data.cleaned_quantity,
-      data.current_quantity,
-      data.current_quantity || data.initial_quantity,
-      data.date_received,
-      data.remarks,
+      data.germination_rate || null,
+      data.initial_quantity || 0,
+      data.cleaned_quantity || null,
+      data.cleaned_quantity || data.initial_quantity || 0,
+      null,
+      data.remarks || null,
       seedId,
     ]);
     return result.rows[0];
@@ -123,23 +135,11 @@ const SeedModel = {
 
   async delete(seedId) {
     const query = `
-        UPDATE seed_lots 
-        SET is_active = false
+        DELETE FROM seed_lot
         WHERE seed_id = $1
         RETURNING seed_id
     `;
     const result = await db.query(query, [seedId]);
-    return result.rows[0];
-  },
-
-  async updateQuantity(seedId, new_quantity) {
-    const query = `
-        UPDATE seed_lots 
-        SET current_quantity = $1
-        WHERE seed_id = $2 AND is_active = true
-        RETURNING *
-    `;
-    const result = await db.query(query, [new_quantity, seedId]);
     return result.rows[0];
   },
 };

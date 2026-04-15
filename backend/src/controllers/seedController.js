@@ -4,13 +4,13 @@ const SeedController = {
   // GET /api/seeds
   async getAll(req, res) {
     try {
-      const { crop_type, variety, classification, search, limit, offset } =
+      const { crop_type, variety, generation, search, limit, offset } =
         req.query;
 
       const seeds = await SeedModel.getAll({
         crop_type,
         variety,
-        classification,
+        generation,
         search,
         limit: limit ? parseInt(limit) : null,
         offset: offset ? parseInt(offset) : null,
@@ -46,10 +46,15 @@ const SeedController = {
       const seedData = req.body;
 
       // Validation
-      if (!seedData.batch_name || !seedData.crop_type || !seedData.variety) {
-        return res
-          .status(400)
-          .json({ error: "Batch name, crop type, and variety are required" });
+      if (
+        !seedData.crop_type ||
+        !seedData.variety ||
+        !seedData.classification
+      ) {
+        return res.status(400).json({
+          error:
+            "Crop type, variety, and classification are required to create a seed lot",
+        });
       }
 
       const seed = await SeedModel.create(seedData, req.user.userId);
