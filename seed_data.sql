@@ -11,6 +11,7 @@ INSERT INTO "user" (email, password, first_name, last_name, role) VALUES
 INSERT INTO project (
     project_id, 
     project_name, 
+    project_code,
     description, 
     start_date, 
     end_date, 
@@ -18,6 +19,7 @@ INSERT INTO project (
 ) VALUES (
     'c2eeaa77-7e2b-5af0-add9-8dd1ce502c33',
     'Seed Storage Improvement 2026',
+    NULL,
     'A project focused on improving management of seed inventory and usage for research and breeding purposes.',
     '2024-01-15',
     '2024-12-31',

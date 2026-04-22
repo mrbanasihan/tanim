@@ -3,6 +3,28 @@ const { Pool } = require("pg");
 // Load environment variables
 require("dotenv").config();
 
+const getBooleanEnv = (value) => {
+  if (value === undefined) {
+    return false;
+  }
+
+  return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+};
+
+const getSslConfig = () => {
+  if (!getBooleanEnv(process.env.DB_SSL)) {
+    return undefined;
+  }
+
+  const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED
+    ? getBooleanEnv(process.env.DB_SSL_REJECT_UNAUTHORIZED)
+    : false;
+
+  return {
+    rejectUnauthorized,
+  };
+};
+
 // Database configuration
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
@@ -13,6 +35,7 @@ const dbConfig = {
   max: 20, // Maximum number of active connections
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  ssl: getSslConfig(),
 };
 
 // Create connection pool

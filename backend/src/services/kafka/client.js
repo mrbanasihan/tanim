@@ -1,4 +1,6 @@
 const { Kafka, logLevel } = require("kafkajs");
+const fs = require("fs");
+const path = require("path");
 const { KAFKA_TOPICS } = require("../../constants/kafka");
 const { setKafkaState } = require("./state");
 
@@ -16,8 +18,77 @@ const getBrokers = () =>
     .map((broker) => broker.trim())
     .filter(Boolean);
 
+const getBooleanEnv = (value) => {
+  if (value === undefined) {
+    return false;
+  }
+
+  return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+};
+
+const readFileIfPresent = (filePath) => {
+  if (!filePath) {
+    return undefined;
+  }
+
+  const resolvedPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.resolve(process.cwd(), filePath);
+
+  return fs.readFileSync(resolvedPath, "utf8");
+};
+
+const getSslConfig = () => {
+  if (!getBooleanEnv(process.env.KAFKA_SSL)) {
+    return undefined;
+  }
+
+  const sslConfig = {};
+  const ca = readFileIfPresent(process.env.KAFKA_CA_CERT_PATH);
+  const cert = readFileIfPresent(process.env.KAFKA_CLIENT_CERT_PATH);
+  const key = readFileIfPresent(process.env.KAFKA_CLIENT_KEY_PATH);
+
+  if (ca) {
+    sslConfig.ca = [ca];
+  }
+
+  if (cert) {
+    sslConfig.cert = cert;
+  }
+
+  if (key) {
+    sslConfig.key = key;
+  }
+
+  if (process.env.KAFKA_CLIENT_KEY_PASSPHRASE) {
+    sslConfig.passphrase = process.env.KAFKA_CLIENT_KEY_PASSPHRASE;
+  }
+
+  return Object.keys(sslConfig).length > 0 ? sslConfig : true;
+};
+
+const getSaslConfig = () => {
+  const username =
+    process.env.KAFKA_SASL_USERNAME || process.env.KAFKA_USERNAME;
+  const password =
+    process.env.KAFKA_SASL_PASSWORD || process.env.KAFKA_PASSWORD;
+
+  if (!username || !password) {
+    return undefined;
+  }
+
+  return {
+    mechanism: process.env.KAFKA_SASL_MECHANISM || "plain",
+    username,
+    password,
+  };
+};
+
 const createKafkaClient = () => {
   if (!kafka) {
+    const ssl = getSslConfig();
+    const sasl = getSaslConfig();
+
     kafka = new Kafka({
       clientId: process.env.KAFKA_CLIENT_ID || "tanim-backend",
       brokers: getBrokers(),
@@ -25,6 +96,8 @@ const createKafkaClient = () => {
         process.env.KAFKA_LOG_LEVEL === "debug"
           ? logLevel.DEBUG
           : logLevel.INFO,
+      ...(ssl ? { ssl } : {}),
+      ...(sasl ? { sasl } : {}),
     });
   }
 
@@ -58,6 +131,15 @@ const getAdmin = () => {
 };
 
 const ensureTopics = async () => {
+  const autoCreateTopics =
+    process.env.KAFKA_AUTO_CREATE_TOPICS === undefined
+      ? process.env.NODE_ENV !== "production"
+      : getBooleanEnv(process.env.KAFKA_AUTO_CREATE_TOPICS);
+
+  if (!autoCreateTopics) {
+    return;
+  }
+
   const kafkaAdmin = getAdmin();
 
   if (!adminConnected) {

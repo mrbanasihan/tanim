@@ -24,6 +24,14 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 
+const isEnabled = (value) => {
+  if (value === undefined) {
+    return false;
+  }
+
+  return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+};
+
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
   : [];
@@ -77,6 +85,12 @@ app.use((err, req, res, next) => {
 // Start server with explicit error handling so bind failures are visible.
 const server = app.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}`);
+  console.log(
+    `Database target: ${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432} (ssl=${isEnabled(process.env.DB_SSL)})`,
+  );
+  console.log(
+    `Kafka target: ${process.env.KAFKA_BROKERS || "localhost:9092"} (ssl=${isEnabled(process.env.KAFKA_SSL)}, autoCreateTopics=${process.env.KAFKA_AUTO_CREATE_TOPICS === undefined ? process.env.NODE_ENV !== "production" : isEnabled(process.env.KAFKA_AUTO_CREATE_TOPICS)})`,
+  );
 });
 
 startConsumer().catch((error) => {
