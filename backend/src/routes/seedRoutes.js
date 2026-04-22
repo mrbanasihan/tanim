@@ -1,6 +1,7 @@
 const express = require("express");
 const SeedController = require("../controllers/seedController");
 const TransactionController = require("../controllers/transactionController");
+const GerminationRecordController = require("../controllers/germinationRecordController");
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
 
@@ -13,6 +14,10 @@ router.get(
   authenticate,
   TransactionController.getBySeedId,
 );
+router.get("/:id/germination-records", authenticate, (req, res) => {
+  req.params.seedId = req.params.id;
+  return GerminationRecordController.getBySeedId(req, res);
+});
 router.post(
   "/",
   authenticate,

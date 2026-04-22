@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { canAccessFeature } from "../utils/accessControl";
 
 const SeedForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const isEditing = !!id;
+  const canManageSeeds = canAccessFeature(user?.role, "create_seed");
 
   const [formData, setFormData] = useState({
     crop_type: "",
     variety: "",
     classification: "",
-    germination_rate: "",
     has_project: false,
     project_id: "",
-    initial_quantity: "",
+    gross_weight: "",
     cleaned_quantity: "",
-    number_of_packets: "",
-    weight_per_packet: "",
-    others: "",
     storage_area: "",
     remarks: "",
   });
@@ -76,12 +76,31 @@ const SeedForm = () => {
   ];
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    if (user.role === "guest") {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+
+    if (!canManageSeeds) {
+      navigate("/seeds", { replace: true });
+      return;
+    }
+
     fetchProjects();
     fetchRooms();
     if (isEditing) {
       fetchSeed();
     }
-  }, [id]);
+  }, [authLoading, canManageSeeds, isEditing, navigate, user]);
 
   const fetchProjects = async () => {
     try {
@@ -112,14 +131,10 @@ const SeedForm = () => {
         crop_type: data.crop_type,
         variety: data.variety,
         classification: data.classification,
-        germination_rate: data.germination_rate,
         has_project: !!data.project_id,
         project_id: data.project_id || "",
-        initial_quantity: data.initial_quantity,
+        gross_weight: data.gross_weight,
         cleaned_quantity: data.cleaned_quantity,
-        number_of_packets: data.number_of_packets,
-        weight_per_packet: data.weight_per_packet,
-        others: data.others || "0.00",
         storage_area: data.storage_area,
         remarks: data.remarks,
       });
@@ -145,44 +160,19 @@ const SeedForm = () => {
       newFormData.project_id = "";
     }
 
-    if (
-      ["number_of_packets", "weight_per_packet", "cleaned_quantity"].includes(
-        name,
-      )
-    ) {
-      const packets = parseFloat(newFormData.number_of_packets) || 0;
-      const weightPerPacket = parseFloat(newFormData.weight_per_packet) || 0;
-      const cleanedQty = parseFloat(newFormData.cleaned_quantity) || 0;
-      const others = packets * weightPerPacket - cleanedQty;
-      newFormData.others = others >= 0 ? others.toFixed(2) : "0.00";
-    }
-
     setFormData(newFormData);
   };
-
-  useEffect(() => {
-    const packets = parseFloat(formData.number_of_packets) || 0;
-    const weightPerPacket = parseFloat(formData.weight_per_packet) || 0;
-    const cleanedQty = parseFloat(formData.cleaned_quantity) || 0;
-    const others = packets * weightPerPacket - cleanedQty;
-    const formattedOthers = others >= 0 ? others.toFixed(2) : "0.00";
-
-    if (formattedOthers !== formData.others) {
-      setFormData((prev) => ({
-        ...prev,
-        others: formattedOthers,
-      }));
-    }
-  }, [
-    formData.number_of_packets,
-    formData.weight_per_packet,
-    formData.cleaned_quantity,
-  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!canManageSeeds) {
+      setError("You do not have permission to manage seed lots");
+      setLoading(false);
+      return;
+    }
 
     const submitData = {
       ...formData,
@@ -206,6 +196,8 @@ const SeedForm = () => {
 
   return (
     <div>
+      {authLoading && <div className="text-center py-8">Loading...</div>}
+      {!authLoading && (!user || user.role === "guest") && null}
       <h1 className="text-3xl font-bold mb-6">
         {isEditing ? "Edit Seed Lot" : "Add New Seed Lot"}
       </h1>
@@ -275,21 +267,6 @@ const SeedForm = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Germination Rate (%)
-            </label>
-            <input
-              type="number"
-              name="germination_rate"
-              value={formData.germination_rate}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -325,17 +302,23 @@ const SeedForm = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Initial Weight (kg)
+              Gross Weight (kg)
             </label>
             <input
               type="number"
-              name="initial_quantity"
-              value={formData.initial_quantity}
+              name="gross_weight"
+              value={formData.gross_weight}
               onChange={handleChange}
               step="0.01"
-              required
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!isEditing}
+              readOnly={isEditing}
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEditing ? "bg-gray-100 text-gray-600" : ""}`}
             />
+            {isEditing && (
+              <p className="text-xs text-gray-500 mt-1">
+                Gross weight cannot be changed after seed lot creation.
+              </p>
+            )}
           </div>
 
           <div>
@@ -348,51 +331,24 @@ const SeedForm = () => {
               value={formData.cleaned_quantity}
               onChange={handleChange}
               step="0.01"
+              min="0"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Number of Packets
+              Current Quantity (kg)
             </label>
             <input
               type="number"
-              name="number_of_packets"
-              value={formData.number_of_packets}
-              onChange={handleChange}
-              min="1"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Weight per Packet (kg)
-            </label>
-            <input
-              type="number"
-              name="weight_per_packet"
-              value={formData.weight_per_packet}
-              onChange={handleChange}
-              step="0.01"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Others (kg)
-            </label>
-            <input
-              type="number"
-              name="others"
-              value={formData.others}
+              value={formData.cleaned_quantity || formData.gross_weight || ""}
               readOnly
               className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 text-gray-600"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Auto-calculated: (Packets × Weight per Packet) - Cleaned Weight
+              Auto-set from cleaned quantity, or gross weight if cleaned is
+              empty.
             </p>
           </div>
 

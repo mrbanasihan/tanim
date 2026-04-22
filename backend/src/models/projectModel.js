@@ -16,14 +16,22 @@ const ProjectModel = {
   },
 
   // Create new project
-  async create(projectName, description, startDate, endDate, createdBy) {
+  async create(
+    projectName,
+    description,
+    startDate,
+    endDate,
+    projectCode,
+    createdBy,
+  ) {
     const query = `
-      INSERT INTO project (project_id, project_name, description, start_date, end_date, created_by, created_at)
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())
+      INSERT INTO project (project_id, project_name, project_code, description, start_date, end_date, created_by, created_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW())
       RETURNING *
     `;
     const result = await db.query(query, [
       projectName,
+      projectCode || null,
       description,
       startDate,
       endDate,
@@ -33,15 +41,23 @@ const ProjectModel = {
   },
 
   // Update project
-  async update(projectId, projectName, description, startDate, endDate) {
+  async update(
+    projectId,
+    projectName,
+    description,
+    startDate,
+    endDate,
+    projectCode,
+  ) {
     const query = `
       UPDATE project 
-      SET project_name = $1, description = $2, start_date = $3, end_date = $4
-      WHERE project_id = $5
+      SET project_name = $1, project_code = $2, description = $3, start_date = $4, end_date = $5
+      WHERE project_id = $6
       RETURNING *
     `;
     const result = await db.query(query, [
       projectName,
+      projectCode || null,
       description,
       startDate,
       endDate,

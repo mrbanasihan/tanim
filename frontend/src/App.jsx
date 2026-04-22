@@ -9,8 +9,10 @@ import Dashboard from "./pages/Dashboard";
 import SeedList from "./pages/SeedList";
 import SeedForm from "./pages/SeedForm";
 import SeedDetail from "./pages/SeedDetail";
+import GerminationRecordForm from "./pages/GerminationRecordForm";
 import TransactionHistory from "./pages/TransactionHistory";
 import TransactionForm from "./pages/TransactionForm";
+import NotificationsPage from "./pages/NotificationsPage";
 import Reports from "./pages/Reports";
 
 function App() {
@@ -71,6 +73,16 @@ function App() {
             }
           />
           <Route
+            path="/seeds/:seedId/germination"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <GerminationRecordForm />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/transactions"
             element={
               <ProtectedRoute>
@@ -86,6 +98,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TransactionForm />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <NotificationsPage />
                 </Layout>
               </ProtectedRoute>
             }

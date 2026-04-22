@@ -4,13 +4,13 @@ const SeedController = {
   // GET /api/seeds
   async getAll(req, res) {
     try {
-      const { crop_type, variety, generation, search, limit, offset } =
+      const { crop_type, variety, project_id, search, limit, offset } =
         req.query;
 
       const seeds = await SeedModel.getAll({
         crop_type,
         variety,
-        generation,
+        project_id,
         search,
         limit: limit ? parseInt(limit) : null,
         offset: offset ? parseInt(offset) : null,
@@ -49,13 +49,17 @@ const SeedController = {
       if (
         !seedData.crop_type ||
         !seedData.variety ||
-        !seedData.classification
+        !seedData.classification ||
+        !seedData.gross_weight
       ) {
         return res.status(400).json({
           error:
-            "Crop type, variety, and classification are required to create a seed lot",
+            "Crop type, variety, classification, and gross weight are required to create a seed lot",
         });
       }
+
+      // Add user ID for backend tracking
+      seedData.created_by = req.user.userId;
 
       const seed = await SeedModel.create(seedData, req.user.userId);
 

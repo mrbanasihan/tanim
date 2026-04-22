@@ -1,16 +1,35 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showLogout, setShowLogout] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedCropGroup, setSelectedCropGroup] = useState(
+    localStorage.getItem("selectedCropGroup") ||
+      user?.current_crop_group ||
+      "legumes",
+  );
+  const availableCropGroups = user?.crop_groups || [];
+  const currentCropGroup = availableCropGroups.includes(selectedCropGroup)
+    ? selectedCropGroup
+    : user?.current_crop_group || availableCropGroups[0] || "legumes";
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleSwitchCropGroup = (cropGroup) => {
+    setSelectedCropGroup(cropGroup);
+    // Store in localStorage for persistence
+    localStorage.setItem("selectedCropGroup", cropGroup);
+    setShowUserMenu(false);
+    // Refresh the page to apply crop group filter
+    window.location.reload();
   };
 
   const isActive = (path) => {
@@ -19,6 +38,25 @@ const Navbar = () => {
     }
     return location.pathname.startsWith(path);
   };
+
+  // Role-based feature access
+  const canAccessFeature = (feature) => {
+    const featureAccess = {
+      admin: ["seeds", "transactions", "reports", "notifications", "all"],
+      researcher: ["seeds", "transactions", "notifications"],
+      staff: ["seeds", "transactions", "notifications"],
+      guest: ["seeds", "transactions"],
+    };
+    return featureAccess[user?.role]?.includes(feature) || false;
+  };
+
+  const canCreateSeed = () =>
+    ["admin", "researcher", "staff"].includes(user?.role);
+  const canAddTransaction = () =>
+    ["admin", "researcher", "staff", "guest"].includes(user?.role);
+  const canAccessReports = () => ["admin", "researcher"].includes(user?.role);
+  const showNotificationBell = () => user?.role !== "guest";
+  const showCropGroupSwitcher = user?.role !== "guest";
 
   return (
     <nav className="bg-gradient-to-r from-green-800 to-emerald-700 shadow-lg sticky top-0 z-50 animate-slide-down">
@@ -44,53 +82,50 @@ const Navbar = () => {
               >
                 <span>Dashboard</span>
               </Link>
-              <Link
-                to="/seeds"
-                className={`${
-                  isActive("/seeds")
-                    ? "bg-green-700 text-white shadow-md"
-                    : "text-green-100 hover:bg-green-700 hover:text-white"
-                } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-              >
-                <span>Seed Lots</span>
-              </Link>
-              <Link
-                to="/transactions"
-                className={`${
-                  isActive("/transactions") && !isActive("/transactions/new")
-                    ? "bg-green-700 text-white shadow-md"
-                    : "text-green-100 hover:bg-green-700 hover:text-white"
-                } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-              >
-                <span>Transactions</span>
-              </Link>
-              <Link
-                to="/transactions/new"
-                className={`${
-                  isActive("/transactions/new")
-                    ? "bg-green-700 text-white shadow-md"
-                    : "text-green-100 hover:bg-green-700 hover:text-white"
-                } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-              >
-                <span>New Transaction</span>
-              </Link>
-              <Link
-                to="/reports"
-                className={`${
-                  isActive("/reports")
-                    ? "bg-green-700 text-white shadow-md"
-                    : "text-green-100 hover:bg-green-700 hover:text-white"
-                } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-              >
-                <span>Reports</span>
-              </Link>
+              {user?.role !== "guest" && canAccessFeature("seeds") && (
+                <Link
+                  to="/seeds"
+                  className={`${
+                    isActive("/seeds")
+                      ? "bg-green-700 text-white shadow-md"
+                      : "text-green-100 hover:bg-green-700 hover:text-white"
+                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
+                >
+                  <span>Seed Lots</span>
+                </Link>
+              )}
+              {canAccessFeature("transactions") && (
+                <Link
+                  to="/transactions"
+                  className={`${
+                    isActive("/transactions")
+                      ? "bg-green-700 text-white shadow-md"
+                      : "text-green-100 hover:bg-green-700 hover:text-white"
+                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
+                >
+                  <span>Transactions</span>
+                </Link>
+              )}
+              {canAccessReports() && (
+                <Link
+                  to="/reports"
+                  className={`${
+                    isActive("/reports")
+                      ? "bg-green-700 text-white shadow-md"
+                      : "text-green-100 hover:bg-green-700 hover:text-white"
+                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
+                >
+                  <span>Reports</span>
+                </Link>
+              )}
             </div>
           </div>
           <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+            {showNotificationBell() && <NotificationBell />}
             <div
               className="relative py-2"
-              onMouseEnter={() => setShowLogout(true)}
-              onMouseLeave={() => setShowLogout(false)}
+              onMouseEnter={() => setShowUserMenu(true)}
+              onMouseLeave={() => setShowUserMenu(false)}
             >
               <div className="flex items-center space-x-3 bg-green-900/30 px-4 py-2 rounded-lg animate-fade-in cursor-pointer hover:bg-green-900/50 transition-all duration-300">
                 <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -103,11 +138,40 @@ const Navbar = () => {
                   </p>
                 </div>
               </div>
-              {showLogout && (
-                <div className="absolute right-0 mt-1">
+              {showUserMenu && (
+                <div className="absolute right-0 mt-1 bg-green-900 rounded-lg shadow-lg overflow-hidden z-50">
+                  {showCropGroupSwitcher && (
+                    <div className="px-4 py-3 border-b border-green-800">
+                      <p className="text-xs text-green-300 font-semibold mb-2">
+                        CROP GROUP
+                      </p>
+                      <div className="space-y-1">
+                        {availableCropGroups.length > 1 ? (
+                          availableCropGroups.map((group) => (
+                            <button
+                              key={group}
+                              onClick={() => handleSwitchCropGroup(group)}
+                              className={`block w-full text-left px-3 py-2 rounded text-sm transition-all ${
+                                currentCropGroup === group
+                                  ? "bg-green-700 text-white font-semibold"
+                                  : "text-green-200 hover:bg-green-800"
+                              }`}
+                            >
+                              {group.charAt(0).toUpperCase() + group.slice(1)}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 rounded text-sm text-green-100 bg-green-800/40">
+                            {currentCropGroup.charAt(0).toUpperCase() +
+                              currentCropGroup.slice(1)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={handleLogout}
-                    className="text-red-300 hover:text-red-100 text-sm font-medium whitespace-nowrap bg-green-900 px-4 py-2 rounded-lg transition-all duration-200 hover:bg-green-900 shadow-lg block w-full text-left"
+                    className="text-red-300 hover:text-red-100 hover:bg-green-800 text-sm font-medium whitespace-nowrap px-4 py-2 transition-all duration-200 block w-full text-left"
                   >
                     Logout
                   </button>
@@ -116,181 +180,170 @@ const Navbar = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu button - only visible on mobile */}
-      <div className="md:hidden absolute top-4 right-4">
-        <button
-          id="mobile-menu-button"
-          className="text-white focus:outline-none bg-green-700 p-2 rounded-lg hover:bg-green-600 transition-colors duration-200"
-          onClick={() => {
-            const menu = document.getElementById("mobile-menu");
-            menu.classList.toggle("hidden");
-          }}
+        {/* Mobile menu button - only visible on mobile */}
+        <div className="md:hidden absolute top-4 right-4">
+          <button
+            id="mobile-menu-button"
+            className="text-white focus:outline-none bg-green-700 p-2 rounded-lg hover:bg-green-600 transition-colors duration-200"
+            onClick={() => {
+              const menu = document.getElementById("mobile-menu");
+              menu.classList.toggle("hidden");
+            }}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          id="mobile-menu"
+          className="hidden md:hidden bg-green-800 shadow-lg animate-slide-down"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      <div
-        id="mobile-menu"
-        className="hidden md:hidden bg-green-800 shadow-lg animate-slide-down"
-      >
-        <div className="px-2 pt-2 pb-3 space-y-1">
-          <Link
-            to="/"
-            className={`${
-              isActive("/") && location.pathname === "/"
-                ? "bg-green-700 text-white"
-                : "text-green-100 hover:bg-green-700 hover:text-white"
-            } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-            onClick={() =>
-              document.getElementById("mobile-menu").classList.add("hidden")
-            }
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/seeds"
-            className={`${
-              isActive("/seeds")
-                ? "bg-green-700 text-white"
-                : "text-green-100 hover:bg-green-700 hover:text-white"
-            } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-            onClick={() =>
-              document.getElementById("mobile-menu").classList.add("hidden")
-            }
-          >
-            Seed Lots
-          </Link>
-          <Link
-            to="/transactions"
-            className={`${
-              isActive("/transactions") && !isActive("/transactions/new")
-                ? "bg-green-700 text-white"
-                : "text-green-100 hover:bg-green-700 hover:text-white"
-            } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-            onClick={() =>
-              document.getElementById("mobile-menu").classList.add("hidden")
-            }
-          >
-            Transactions
-          </Link>
-          <Link
-            to="/transactions/new"
-            className={`${
-              isActive("/transactions/new")
-                ? "bg-green-700 text-white"
-                : "text-green-100 hover:bg-green-700 hover:text-white"
-            } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-            onClick={() =>
-              document.getElementById("mobile-menu").classList.add("hidden")
-            }
-          >
-            New Transaction
-          </Link>
-          <Link
-            to="/reports"
-            className={`${
-              isActive("/reports")
-                ? "bg-green-700 text-white"
-                : "text-green-100 hover:bg-green-700 hover:text-white"
-            } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-            onClick={() =>
-              document.getElementById("mobile-menu").classList.add("hidden")
-            }
-          >
-            Reports
-          </Link>
-          <div className="pt-4 pb-3 border-t border-green-700">
-            <div className="flex items-center px-3">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                  <span className="text-white">👤</span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <div className="text-base font-medium text-white">
-                  {user?.name || user?.email?.split("@")[0] || "User"}
-                </div>
-                <div className="text-sm font-medium text-green-200">
-                  {user?.email}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  document
-                    .getElementById("mobile-menu")
-                    .classList.add("hidden");
-                }}
-                className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all duration-200"
+          <div className="px-2 pt-2 pb-3 space-y-1">
+            <Link
+              to="/"
+              className={`${
+                isActive("/") && location.pathname === "/"
+                  ? "bg-green-700 text-white"
+                  : "text-green-100 hover:bg-green-700 hover:text-white"
+              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+              onClick={() =>
+                document.getElementById("mobile-menu").classList.add("hidden")
+              }
+            >
+              Dashboard
+            </Link>
+            {user?.role !== "guest" && (
+              <Link
+                to="/seeds"
+                className={`${
+                  isActive("/seeds")
+                    ? "bg-green-700 text-white"
+                    : "text-green-100 hover:bg-green-700 hover:text-white"
+                } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+                onClick={() =>
+                  document.getElementById("mobile-menu").classList.add("hidden")
+                }
               >
-                Logout
-              </button>
+                Seed Lots
+              </Link>
+            )}
+            <Link
+              to="/transactions"
+              className={`${
+                isActive("/transactions")
+                  ? "bg-green-700 text-white"
+                  : "text-green-100 hover:bg-green-700 hover:text-white"
+              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+              onClick={() =>
+                document.getElementById("mobile-menu").classList.add("hidden")
+              }
+            >
+              Transactions
+            </Link>
+            <Link
+              to="/reports"
+              className={`${
+                isActive("/reports")
+                  ? "bg-green-700 text-white"
+                  : "text-green-100 hover:bg-green-700 hover:text-white"
+              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+              onClick={() =>
+                document.getElementById("mobile-menu").classList.add("hidden")
+              }
+            >
+              Reports
+            </Link>
+            <div className="pt-4 pb-3 border-t border-green-700">
+              <div className="flex items-center px-3">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white">👤</span>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <div className="text-base font-medium text-white">
+                    {user?.name || user?.email?.split("@")[0] || "User"}
+                  </div>
+                  <div className="text-sm font-medium text-green-200">
+                    {user?.email}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    document
+                      .getElementById("mobile-menu")
+                      .classList.add("hidden");
+                  }}
+                  className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        <style jsx>{`
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes pulseSlow {
+            0%,
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.8;
+              transform: scale(1.05);
+            }
+          }
+
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+
+          .animate-slide-down {
+            animation: slideDown 0.5s ease-out;
+          }
+
+          .animate-pulse-slow {
+            animation: pulseSlow 2s ease-in-out infinite;
+          }
+
+          .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+          }
+        `}</style>
       </div>
-
-      <style jsx>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes pulseSlow {
-          0%,
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.05);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        .animate-slide-down {
-          animation: slideDown 0.5s ease-out;
-        }
-
-        .animate-pulse-slow {
-          animation: pulseSlow 2s ease-in-out infinite;
-        }
-
-        .animate-fade-in {
-          animation: fadeIn 0.6s ease-out;
-        }
-      `}</style>
     </nav>
   );
 };

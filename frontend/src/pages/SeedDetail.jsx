@@ -6,6 +6,8 @@ const SeedDetail = () => {
   const { id } = useParams();
   const [seed, setSeed] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [germinationRecords, setGerminationRecords] = useState([]);
+  const [latestGermination, setLatestGermination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,12 +24,27 @@ const SeedDetail = () => {
 
   const fetchSeedData = async () => {
     try {
-      const [seedResponse, transactionsResponse] = await Promise.all([
-        api.get(`/seeds/${id}`),
-        api.get(`/seeds/${id}/transactions`),
-      ]);
+      const [seedResponse, transactionsResponse, germinationResponse] =
+        await Promise.all([
+          api.get(`/seeds/${id}`),
+          api.get(`/seeds/${id}/transactions`),
+          api.get(`/seeds/${id}/germination-records`),
+        ]);
       setSeed(seedResponse.data);
       setTransactions(transactionsResponse.data.map(normalizeTransaction));
+
+      // Fetch germination records
+      const records = germinationResponse.data || [];
+      console.log("Germination records:", records);
+      setGerminationRecords(records);
+
+      // Get the most recent germination record
+      if (records.length > 0) {
+        const sorted = [...records].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
+        );
+        setLatestGermination(sorted[0]);
+      }
     } catch (error) {
       console.error("Error fetching seed data:", error);
       setError("Failed to load seed data");
@@ -75,6 +92,25 @@ const SeedDetail = () => {
             </p>
           </div>
           <div className="flex space-x-3">
+            <Link
+              to={`/seeds/${id}/germination`}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>Record Germination</span>
+            </Link>
             <Link
               to={`/seeds/${id}/edit`}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
@@ -155,23 +191,15 @@ const SeedDetail = () => {
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
               <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Germination Rate (%)
-              </label>
-              <p className="text-lg font-medium text-slate-900">
-                {seed.germination_rate}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl">
-              <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Initial Quantity (kg)
+                Gross Weight (kg)
               </label>
               <p className="text-lg font-medium text-green-600 font-bold">
-                {seed.initial_quantity}
+                {seed.gross_weight}
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
               <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Cleaned Quantity (kg)
+                Cleaned Weight (kg)
               </label>
               <p className="text-lg font-medium text-blue-600 font-bold">
                 {seed.cleaned_quantity}
@@ -179,34 +207,10 @@ const SeedDetail = () => {
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
               <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Current Quantity (kg)
+                Current Weight (kg)
               </label>
               <p className="text-lg font-medium text-purple-600 font-bold">
                 {seed.current_quantity}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl">
-              <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Number of Packets
-              </label>
-              <p className="text-lg font-medium text-slate-900">
-                {seed.number_of_packets}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl">
-              <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Weight per Packet (kg)
-              </label>
-              <p className="text-lg font-medium text-slate-900">
-                {seed.weight_per_packet}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl">
-              <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Others (kg)
-              </label>
-              <p className="text-lg font-medium text-orange-600 font-bold">
-                {seed.others}
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
@@ -216,20 +220,6 @@ const SeedDetail = () => {
               <p className="text-lg font-medium text-slate-900">
                 {seed.storage_area}
               </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl">
-              <label className="block text-sm font-semibold text-slate-600 mb-1">
-                Status
-              </label>
-              <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  seed.is_active
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {seed.is_active ? "Active" : "Inactive"}
-              </span>
             </div>
             {seed.project_name && (
               <div className="bg-slate-50 p-4 rounded-2xl">
@@ -241,6 +231,19 @@ const SeedDetail = () => {
                 </p>
               </div>
             )}
+            {latestGermination && (
+              <div className="bg-slate-50 p-4 rounded-2xl">
+                <label className="block text-sm font-semibold text-slate-600 mb-1">
+                  Latest Germination Rate
+                </label>
+                <p className="text-lg font-medium text-orange-600 font-bold">
+                  {latestGermination.germination_rate}%
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {new Date(latestGermination.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            )}
           </div>
           {seed.remarks && (
             <div className="mt-6 bg-slate-50 p-4 rounded-2xl">
@@ -248,6 +251,76 @@ const SeedDetail = () => {
                 Remarks
               </label>
               <p className="text-slate-900">{seed.remarks}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Germination Records Section */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Germination Records
+            </h2>
+            <span className="text-sm text-slate-500">
+              {germinationRecords.length} records
+            </span>
+          </div>
+
+          {germinationRecords.length === 0 ? (
+            <div className="py-16 text-center text-slate-500">
+              No records found
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-3xl border border-slate-200">
+              <table className="min-w-full divide-y divide-slate-200 table-auto">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      Germination Rate (%)
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      Next Germination Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      Recorded By
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      Date Recorded
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {germinationRecords
+                    .sort(
+                      (a, b) => new Date(b.created_at) - new Date(a.created_at),
+                    )
+                    .map((record) => (
+                      <tr
+                        key={record.germination_id}
+                        className="hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3 text-sm text-slate-700 font-semibold text-orange-600">
+                          {record.germination_rate}%
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {record.next_germination_date
+                            ? new Date(
+                                record.next_germination_date,
+                              ).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {record.first_name && record.last_name
+                            ? `${record.first_name} ${record.last_name}`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {new Date(record.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -362,15 +435,21 @@ const SeedDetail = () => {
                 </div>
               )}
 
-              {/* Check-in Transactions */}
-              {transactions.filter((t) => t.type === "incoming").length > 0 && (
+              {/* Disposal Transactions */}
+              {transactions.filter(
+                (t) => t.type === "damaged" || t.type === "return",
+              ).length > 0 && (
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-slate-900">
-                      Check-in Transactions
+                      Other Transactions
                     </h3>
                     <span className="text-sm text-slate-500">
-                      {transactions.filter((t) => t.type === "incoming").length}{" "}
+                      {
+                        transactions.filter(
+                          (t) => t.type === "damaged" || t.type === "return",
+                        ).length
+                      }{" "}
                       records
                     </span>
                   </div>
@@ -391,7 +470,9 @@ const SeedDetail = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-200 bg-white">
                         {transactions
-                          .filter((t) => t.type === "incoming")
+                          .filter(
+                            (t) => t.type === "damaged" || t.type === "return",
+                          )
                           .map((transaction) => (
                             <tr
                               key={transaction.id}

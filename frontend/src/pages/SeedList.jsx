@@ -1,39 +1,309 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { filterByCropGroup } from "../utils/accessControl";
 
 const SeedList = () => {
+  const { user } = useAuth();
   const [seeds, setSeeds] = useState([]);
+  const [filteredSeeds, setFilteredSeeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     crop_type: "",
     variety: "",
-    generation: "",
+    project_id: "",
   });
+  const [sortType, setSortType] = useState("name"); // name, quantity
+  const [sortOrder, setSortOrder] = useState("asc"); // asc, desc
+  const [cropTypes, setCropTypes] = useState([]);
+  const [varieties, setVarieties] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [showCropTypeDropdown, setShowCropTypeDropdown] = useState(false);
+  const [showVarietyDropdown, setShowVarietyDropdown] = useState(false);
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [cropTypeSearch, setCropTypeSearch] = useState("");
+  const [varietySearch, setVarietySearch] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
+  const cropTypeDropdownRef = useRef(null);
+  const varietyDropdownRef = useRef(null);
+  const projectDropdownRef = useRef(null);
+
+  // Fetch dropdown data on component mount
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
+
+  // Handle clicking outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        cropTypeDropdownRef.current &&
+        !cropTypeDropdownRef.current.contains(event.target)
+      ) {
+        setShowCropTypeDropdown(false);
+      }
+      if (
+        varietyDropdownRef.current &&
+        !varietyDropdownRef.current.contains(event.target)
+      ) {
+        setShowVarietyDropdown(false);
+      }
+      if (
+        projectDropdownRef.current &&
+        !projectDropdownRef.current.contains(event.target)
+      ) {
+        setShowProjectDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Fetch seeds when filters or sort changes
   useEffect(() => {
     fetchSeeds();
-  }, [filters]);
+  }, [filters, sortType, sortOrder, user?.role, user?.crop_groups]);
+
+  // Apply search filtering locally
+  useEffect(() => {
+    if (seeds.length > 0) {
+      applySearchAndFilters();
+    } else {
+      setFilteredSeeds([]);
+    }
+  }, [searchTerm, seeds]);
 
   const fetchSeeds = async () => {
     try {
+      setLoading(true);
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value && value !== "") params.append(key, value);
       });
+
       const response = await api.get(`/seeds?${params}`);
-      setSeeds(response.data);
+      let fetchedSeeds = response.data || [];
+
+      // Make sure fetchedSeeds is an array
+      if (!Array.isArray(fetchedSeeds)) {
+        fetchedSeeds = [];
+      }
+
+      // Filter by crop group based on user role and assigned crop groups
+      // If no crop_groups are assigned yet, show all available crops for their role
+      const cropGroups =
+        user?.crop_groups && user.crop_groups.length > 0
+          ? user.crop_groups
+          : user?.role !== "admin"
+            ? []
+            : null;
+      fetchedSeeds = filterByCropGroup(fetchedSeeds, user?.role, cropGroups);
+
+      // Apply sorting
+      fetchedSeeds = applySorting(fetchedSeeds);
+
+      setSeeds(fetchedSeeds);
+      setFilteredSeeds(fetchedSeeds);
     } catch (error) {
       console.error("Error fetching seeds:", error);
+      setSeeds([]);
+      setFilteredSeeds([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
+  const applySorting = (seedsArray) => {
+    if (!Array.isArray(seedsArray)) return [];
+
+    const sorted = [...seedsArray];
+
+    if (sortType === "name") {
+      if (sortOrder === "asc") {
+        return sorted.sort((a, b) =>
+          (a.batch_name || "").localeCompare(b.batch_name || ""),
+        );
+      } else {
+        return sorted.sort((a, b) =>
+          (b.batch_name || "").localeCompare(a.batch_name || ""),
+        );
+      }
+    } else if (sortType === "quantity") {
+      if (sortOrder === "asc") {
+        return sorted.sort(
+          (a, b) => (a.current_quantity || 0) - (b.current_quantity || 0),
+        );
+      } else {
+        return sorted.sort(
+          (a, b) => (b.current_quantity || 0) - (a.current_quantity || 0),
+        );
+      }
+    } else if (sortType === "date") {
+      if (sortOrder === "asc") {
+        return sorted.sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at),
+        );
+      } else {
+        return sorted.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
+        );
+      }
+    }
+
+    return sorted;
+  };
+
+  const applySearchAndFilters = () => {
+    if (!Array.isArray(seeds)) {
+      setFilteredSeeds([]);
+      return;
+    }
+
+    let results = [...seeds];
+
+    // Apply search across multiple fields
+    if (searchTerm && searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      results = results.filter(
+        (seed) =>
+          (seed.batch_name && seed.batch_name.toLowerCase().includes(term)) ||
+          (seed.crop_type && seed.crop_type.toLowerCase().includes(term)) ||
+          (seed.variety && seed.variety.toLowerCase().includes(term)) ||
+          (seed.location && seed.location.toLowerCase().includes(term)),
+      );
+    }
+
+    setFilteredSeeds(results);
+  };
+
+  const fetchDropdownData = async () => {
+    try {
+      const [seedsRes, projectsRes] = await Promise.all([
+        api.get("/seeds"),
+        api.get("/projects"),
+      ]);
+
+      // Get unique crop types
+      const seedsData = seedsRes.data || [];
+      const uniqueCropTypes = [
+        ...new Set(seedsData.map((seed) => seed.crop_type).filter(Boolean)),
+      ].sort();
+      setCropTypes(uniqueCropTypes);
+
+      // Get unique varieties
+      const uniqueVarieties = [
+        ...new Set(seedsData.map((seed) => seed.variety).filter(Boolean)),
+      ].sort();
+      setVarieties(uniqueVarieties);
+
+      // Get projects - using project_name field
+      let projectsData = [];
+      if (projectsRes.data) {
+        if (Array.isArray(projectsRes.data)) {
+          projectsData = projectsRes.data;
+        } else if (
+          projectsRes.data.projects &&
+          Array.isArray(projectsRes.data.projects)
+        ) {
+          projectsData = projectsRes.data.projects;
+        } else if (
+          projectsRes.data.data &&
+          Array.isArray(projectsRes.data.data)
+        ) {
+          projectsData = projectsRes.data.data;
+        }
+      }
+      setProjects(projectsData);
+    } catch (error) {
+      console.error("Error fetching dropdown data:", error);
+      setCropTypes([]);
+      setVarieties([]);
+      setProjects([]);
+    }
+  };
+
+  const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
+
+  const toggleSort = (type) => {
+    if (sortType === type) {
+      // Toggle order if same type
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      // Set new type with default asc order
+      setSortType(type);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleCropTypeSelect = (cropType) => {
+    handleFilterChange("crop_type", cropType);
+    setShowCropTypeDropdown(false);
+    setShowVarietyDropdown(false);
+    setShowProjectDropdown(false);
+    setCropTypeSearch("");
+  };
+
+  const handleVarietySelect = (variety) => {
+    handleFilterChange("variety", variety);
+    setShowCropTypeDropdown(false);
+    setShowVarietyDropdown(false);
+    setShowProjectDropdown(false);
+    setVarietySearch("");
+  };
+
+  const handleProjectSelect = (project) => {
+    handleFilterChange("project_id", project.project_id || "");
+    setShowCropTypeDropdown(false);
+    setShowVarietyDropdown(false);
+    setShowProjectDropdown(false);
+    setProjectSearch("");
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      crop_type: "",
+      variety: "",
+      project_id: "",
+    });
+    setSearchTerm("");
+    setSortType("name");
+    setSortOrder("asc");
+    setCropTypeSearch("");
+    setVarietySearch("");
+    setProjectSearch("");
+    setShowCropTypeDropdown(false);
+    setShowVarietyDropdown(false);
+    setShowProjectDropdown(false);
+  };
+
+  const filteredCropTypes = cropTypes.filter(
+    (crop) =>
+      crop && crop.toLowerCase().includes((cropTypeSearch || "").toLowerCase()),
+  );
+
+  const filteredVarieties = varieties.filter(
+    (variety) =>
+      variety &&
+      variety.toLowerCase().includes((varietySearch || "").toLowerCase()),
+  );
+
+  const filteredProjects = projects.filter(
+    (project) =>
+      project &&
+      project.project_name &&
+      project.project_name
+        .toLowerCase()
+        .includes((projectSearch || "").toLowerCase()),
+  );
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this seed lot?")) {
       try {
@@ -45,123 +315,645 @@ const SeedList = () => {
       }
     }
   };
+
+  // Protect route - guests cannot access seed list
+  if (user && user.role === "guest") {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold text-lg mb-4">
+            Access Denied
+          </p>
+          <p className="text-gray-600 mb-6">
+            Guest users do not have access to seed lots.
+          </p>
+          <a
+            href="/dashboard"
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-gray-500 text-lg">Loading seed lots...</div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Seed Lots</h1>
-        <Link
-          to="/seeds/new"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Add New Seed Lot
-        </Link>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-lg font-semibold mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input
-            type="text"
-            name="crop_type"
-            placeholder="Crop Type"
-            value={filters.crop_type}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            name="variety"
-            placeholder="Variety"
-            value={filters.variety}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            name="generation"
-            placeholder="Generation"
-            value={filters.generation}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded px-3 py-2"
-          />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-semibold text-slate-900 mb-2">
+              Seed Lots
+            </h1>
+            <p className="text-sm text-slate-500">
+              Browse all seed lot records in the system. Use the search,
+              filters, and sorting options. Deleted records are hidden from the
+              list.
+            </p>
+          </div>
+          {["admin", "researcher", "staff"].includes(user?.role) && (
+            <Link
+              to="/seeds/new"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Add New Seed Lot
+            </Link>
+          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Lot Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Crop Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Variety
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Quantity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {seeds.map((seed) => (
-              <tr key={seed.seed_id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {seed.batch_name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {seed.crop_type}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {seed.variety}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {seed.current_quantity}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {seed.is_active ? "Active" : "Inactive"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Link
-                    to={`/seeds/${seed.seed_id}`}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+      {/* Combined Search, Filters, and Sort - All in One Line */}
+      <div className="bg-white rounded-lg shadow-md mb-6">
+        <div className="p-4">
+          <div className="flex flex-wrap lg:flex-nowrap gap-3 items-end">
+            {/* Search Bar - Made longer */}
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Search
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    View
-                  </Link>
-                  <Link
-                    to={`/seeds/${seed.seed_id}/edit`}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    Edit
-                  </Link>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search seeds..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
+                />
+                {searchTerm && (
                   <button
-                    onClick={() => handleDelete(seed.seed_id)}
-                    className="text-red-600 hover:text-red-900"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    Delete
+                    <svg
+                      className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {seeds.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No seed lots found
+                )}
+              </div>
+            </div>
+
+            {/* Crop Type Dropdown */}
+            <div
+              className="relative dropdown-container w-40"
+              ref={cropTypeDropdownRef}
+            >
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Crop Type
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Crop type..."
+                  value={filters.crop_type || cropTypeSearch}
+                  onChange={(e) => {
+                    setCropTypeSearch(e.target.value);
+                    if (filters.crop_type) {
+                      handleFilterChange("crop_type", "");
+                    }
+                    setShowCropTypeDropdown(true);
+                  }}
+                  onFocus={() => setShowCropTypeDropdown(true)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCropTypeDropdown(!showCropTypeDropdown)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-2"
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {showCropTypeDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm overflow-auto border border-gray-200">
+                  <button
+                    onClick={() => handleCropTypeSelect("")}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                  >
+                    All Crop Types
+                  </button>
+                  {filteredCropTypes.map((cropType) => (
+                    <button
+                      key={cropType}
+                      onClick={() => handleCropTypeSelect(cropType)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                    >
+                      {cropType}
+                    </button>
+                  ))}
+                  {filteredCropTypes.length === 0 && cropTypeSearch && (
+                    <div className="px-3 py-2 text-gray-500 text-xs">
+                      No crop types found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Variety Dropdown */}
+            <div
+              className="relative dropdown-container w-40"
+              ref={varietyDropdownRef}
+            >
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Variety
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Variety..."
+                  value={filters.variety || varietySearch}
+                  onChange={(e) => {
+                    setVarietySearch(e.target.value);
+                    if (filters.variety) {
+                      handleFilterChange("variety", "");
+                    }
+                    setShowVarietyDropdown(true);
+                  }}
+                  onFocus={() => setShowVarietyDropdown(true)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowVarietyDropdown(!showVarietyDropdown)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-2"
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {showVarietyDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm overflow-auto border border-gray-200">
+                  <button
+                    onClick={() => handleVarietySelect("")}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                  >
+                    All Varieties
+                  </button>
+                  {filteredVarieties.map((variety) => (
+                    <button
+                      key={variety}
+                      onClick={() => handleVarietySelect(variety)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                    >
+                      {variety}
+                    </button>
+                  ))}
+                  {filteredVarieties.length === 0 && varietySearch && (
+                    <div className="px-3 py-2 text-gray-500 text-xs">
+                      No varieties found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Project Dropdown - Fixed with project_name */}
+            <div
+              className="relative dropdown-container w-40"
+              ref={projectDropdownRef}
+            >
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Project
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Project..."
+                  value={
+                    projectSearch ||
+                    (filters.project_id
+                      ? projects.find(
+                          (p) => p.project_id === filters.project_id,
+                        )?.project_name || ""
+                      : "")
+                  }
+                  onChange={(e) => {
+                    setProjectSearch(e.target.value);
+                    if (filters.project_id) {
+                      handleFilterChange("project_id", "");
+                    }
+                    setShowProjectDropdown(true);
+                  }}
+                  onFocus={() => setShowProjectDropdown(true)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-2"
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {showProjectDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm overflow-auto border border-gray-200">
+                  <button
+                    onClick={() => handleProjectSelect({ project_id: "" })}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                  >
+                    All Projects
+                  </button>
+                  {filteredProjects.map((project) => (
+                    <button
+                      key={project.project_id}
+                      onClick={() => handleProjectSelect(project)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
+                    >
+                      {project.project_name}
+                    </button>
+                  ))}
+                  {filteredProjects.length === 0 && projectSearch && (
+                    <div className="px-3 py-2 text-gray-500 text-xs">
+                      No projects found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Sort By - Combined Toggle Buttons */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sort By
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleSort("name")}
+                  className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                    sortType === "name"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  title={
+                    sortType === "name" && sortOrder === "asc"
+                      ? "Sort Z-A"
+                      : "Sort A-Z"
+                  }
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    {sortType === "name" && sortOrder === "asc" ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                      />
+                    ) : sortType === "name" && sortOrder === "desc" ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 4h13M3 8h9m-9 4h9m5-4l4 4m0 0l4-4m-4 4V4"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                      />
+                    )}
+                  </svg>
+                  <span className="text-sm">Name</span>
+                </button>
+                <button
+                  onClick={() => toggleSort("quantity")}
+                  className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                    sortType === "quantity"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  title={
+                    sortType === "quantity" && sortOrder === "asc"
+                      ? "Highest first"
+                      : "Lowest first"
+                  }
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    {sortType === "quantity" && sortOrder === "desc" ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 15l7-7 7 7"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    )}
+                  </svg>
+                  <span className="text-sm">Qty</span>
+                </button>
+                <button
+                  onClick={() => toggleSort("date")}
+                  className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                    sortType === "date"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  title={
+                    sortType === "date" && sortOrder === "asc"
+                      ? "Oldest first"
+                      : "Newest first"
+                  }
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    {sortType === "date" && sortOrder === "desc" ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 15l7-7 7 7"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    )}
+                  </svg>
+                  <span className="text-sm">Date</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Clear All Button - Now fits in one line */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 opacity-0">
+                Clear
+              </label>
+              <button
+                onClick={clearAllFilters}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm whitespace-nowrap"
+              >
+                Clear All
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Active Filters Tags - On a Separate Line */}
+          {(filters.crop_type ||
+            filters.variety ||
+            filters.project_id ||
+            searchTerm) && (
+            <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap gap-2">
+              <span className="text-xs text-gray-500 mr-1 font-medium">
+                Active filters:
+              </span>
+              {searchTerm && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                  Search: {searchTerm}
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="ml-1.5 hover:text-blue-600 font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.crop_type && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                  Crop: {filters.crop_type}
+                  <button
+                    onClick={() => handleFilterChange("crop_type", "")}
+                    className="ml-1.5 hover:text-green-600 font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.variety && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                  Variety: {filters.variety}
+                  <button
+                    onClick={() => handleFilterChange("variety", "")}
+                    className="ml-1.5 hover:text-purple-600 font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.project_id && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                  Project:{" "}
+                  {
+                    projects.find((p) => p.project_id === filters.project_id)
+                      ?.project_name
+                  }
+                  <button
+                    onClick={() => handleFilterChange("project_id", "")}
+                    className="ml-1.5 hover:text-yellow-600 font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="mb-4 text-sm text-gray-600">
+        Showing {filteredSeeds.length} of {seeds.length} seed lots
+      </div>
+
+      {/* Seeds Table */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Lot Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Crop Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Variety
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Weight (kg)
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredSeeds.length > 0 ? (
+                filteredSeeds.map((seed) => (
+                  <tr
+                    key={seed.seed_id}
+                    className="hover:bg-gray-50 transition"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {seed.batch_name || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                        {seed.crop_type || "N/A"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {seed.variety || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="font-semibold">
+                        {seed.current_quantity || 0}
+                      </span>{" "}
+                      kg
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                      <Link
+                        to={`/seeds/${seed.seed_id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        to={`/seeds/${seed.seed_id}/edit`}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(seed.seed_id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="mt-2">No seed lots found</p>
+                    <p className="text-sm">
+                      Try adjusting your filters or search term
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

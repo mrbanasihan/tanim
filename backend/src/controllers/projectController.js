@@ -32,7 +32,8 @@ const ProjectController = {
   // POST /api/projects
   async create(req, res) {
     try {
-      const { projectName, description, startDate, endDate } = req.body;
+      const { projectName, description, startDate, endDate, projectCode } =
+        req.body;
 
       if (!projectName) {
         return res.status(400).json({ error: "Project name is required" });
@@ -43,6 +44,7 @@ const ProjectController = {
         description,
         startDate,
         endDate,
+        projectCode,
         req.user.userId,
       );
 
@@ -57,7 +59,8 @@ const ProjectController = {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { projectName, description, startDate, endDate } = req.body;
+      const { projectName, description, startDate, endDate, projectCode } =
+        req.body;
 
       const project = await ProjectModel.update(
         id,
@@ -65,6 +68,7 @@ const ProjectController = {
         description,
         startDate,
         endDate,
+        projectCode,
       );
 
       if (!project) {

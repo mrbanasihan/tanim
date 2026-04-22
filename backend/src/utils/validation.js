@@ -76,22 +76,16 @@ const validateSeedLot = (data) => {
     errors.push("Variety is required");
   }
 
-  if (
-    data.germination_rate !== undefined &&
-    !isValidPercentage(data.germination_rate)
-  ) {
-    errors.push("Germination rate must be between 0 and 100");
-  }
-
-  if (
-    data.initial_quantity !== undefined &&
-    !isValidQuantity(data.initial_quantity)
-  ) {
-    errors.push("Initial quantity must be a positive number");
+  // Gross weight is required for creation, optional for updates
+  // Also check initial_quantity as fallback for backwards compatibility
+  const weight = data.gross_weight || data.initial_quantity;
+  if (weight !== undefined && weight !== "" && !isValidQuantity(weight)) {
+    errors.push("Gross weight must be a positive number");
   }
 
   if (
     data.cleaned_quantity !== undefined &&
+    data.cleaned_quantity !== "" &&
     !isValidQuantity(data.cleaned_quantity)
   ) {
     errors.push("Cleaned quantity must be a positive number");

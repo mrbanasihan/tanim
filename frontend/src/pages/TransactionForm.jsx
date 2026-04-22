@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { filterByCropGroup } from "../utils/accessControl";
 
 const TransactionForm = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const seedLotId = searchParams.get("seed_lot_id");
@@ -10,17 +13,18 @@ const TransactionForm = () => {
   const [formData, setFormData] = useState({
     type: "check-out",
     seed_id: seedLotId || "",
-    number_of_packets: "",
+    quantity: "",
     recipient: "",
     purpose: "",
     affiliation: "",
     contact: "",
     remarks: "",
   });
-  const [selectedSeed, setSelectedSeed] = useState(null);
   const [seedLots, setSeedLots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedSeedQuantity, setSelectedSeedQuantity] = useState(0);
+  const isGuest = user?.role === "guest";
 
   useEffect(() => {
     fetchSeedLots();
@@ -29,7 +33,11 @@ const TransactionForm = () => {
   const fetchSeedLots = async () => {
     try {
       const response = await api.get("/seeds");
-      setSeedLots(response.data);
+      let seeds = response.data || [];
+
+      // Filter by crop group based on user role
+      seeds = filterByCropGroup(seeds, user?.role, user?.crop_groups);
+      setSeedLots(seeds);
     } catch (error) {
       console.error("Error fetching seed lots:", error);
     }
@@ -39,9 +47,20 @@ const TransactionForm = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "seed_id") {
-      const seed = seedLots.find((s) => s.seed_id === value);
-      setSelectedSeed(seed || null);
+    // When seed_id changes, fetch and display current quantity
+    if (name === "seed_id" && value) {
+      try {
+        const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
+        if (selectedSeed) {
+          const quantity = selectedSeed.current_quantity || 0;
+          setSelectedSeedQuantity(parseFloat(quantity));
+        } else {
+          setSelectedSeedQuantity(0);
+        }
+      } catch (error) {
+        console.error("Error setting seed quantity:", error);
+        setSelectedSeedQuantity(0);
+      }
     }
   };
 
@@ -54,19 +73,18 @@ const TransactionForm = () => {
       let endpoint = "/transactions";
       if (formData.type === "check-out") {
         endpoint += "/check-out";
-      } else if (formData.type === "check-in") {
-        endpoint += "/check-in";
       } else if (formData.type === "disposal") {
+        if (isGuest) {
+          setError("Guests can only create check-out transactions");
+          setLoading(false);
+          return;
+        }
         endpoint += "/disposal";
       }
 
       const payload = {
         seed_id: formData.seed_id,
-        quantity:
-          selectedSeed && selectedSeed.weight_per_packet
-            ? parseFloat(formData.number_of_packets) *
-              parseFloat(selectedSeed.weight_per_packet)
-            : parseFloat(formData.number_of_packets),
+        quantity: parseFloat(formData.quantity),
       };
 
       if (formData.type === "check-out") {
@@ -109,8 +127,7 @@ const TransactionForm = () => {
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="check-out">Check Out</option>
-              <option value="check-in">Check In</option>
-              <option value="disposal">Disposal</option>
+              {!isGuest && <option value="disposal">Disposal</option>}
             </select>
           </div>
 
@@ -129,8 +146,6 @@ const TransactionForm = () => {
               {seedLots.map((seed) => (
                 <option key={seed.seed_id} value={seed.seed_id}>
                   {seed.batch_name} - {seed.crop_type} {seed.variety}
-                  {seed.weight_per_packet &&
-                    ` (${seed.weight_per_packet}kg/packet)`}
                 </option>
               ))}
             </select>
@@ -138,23 +153,56 @@ const TransactionForm = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Number of Packets
+              Quantity (kg)
             </label>
             <input
               type="number"
-              name="number_of_packets"
-              value={formData.number_of_packets}
+              name="quantity"
+              value={formData.quantity}
               onChange={handleChange}
               required
-              min="1"
+              min="0.01"
+              step="0.01"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {selectedSeed && selectedSeed.weight_per_packet && (
-              <p className="text-xs text-gray-500 mt-1">
-                Weight per packet: {selectedSeed.weight_per_packet} kg
-              </p>
-            )}
           </div>
+
+          {formData.seed_id && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Current Quantity:</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {(selectedSeedQuantity || 0).toFixed(2)} kg
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Quantity After Transaction:</p>
+                  <p
+                    className={`text-lg font-semibold ${
+                      formData.quantity &&
+                      parseFloat(formData.quantity) >
+                        (selectedSeedQuantity || 0)
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {(
+                      (selectedSeedQuantity || 0) -
+                      (formData.quantity ? parseFloat(formData.quantity) : 0)
+                    ).toFixed(2)}{" "}
+                    kg
+                  </p>
+                </div>
+              </div>
+              {formData.quantity &&
+                parseFloat(formData.quantity) > (selectedSeedQuantity || 0) && (
+                  <p className="text-red-600 text-sm mt-2 font-medium">
+                    ⚠️ Insufficient quantity available
+                  </p>
+                )}
+            </div>
+          )}
 
           {formData.type === "check-out" && (
             <>

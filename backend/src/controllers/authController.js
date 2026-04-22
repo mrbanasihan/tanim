@@ -83,6 +83,8 @@ const AuthController = {
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
+          crop_groups: user.crop_groups,
+          current_crop_group: user.crop_groups?.[0] || "legumes",
         },
       });
     } catch (error) {
