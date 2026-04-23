@@ -32,8 +32,16 @@ const isEnabled = (value) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+const normalizeOrigin = (origin) => origin.trim().replace(/\/$/, "");
+
+const configuredOrigins =
+  process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "";
+
+const allowedOrigins = configuredOrigins
+  ? configuredOrigins
+      .split(",")
+      .map((origin) => normalizeOrigin(origin))
+      .filter(Boolean)
   : [];
 
 const corsOptions = {
@@ -43,8 +51,13 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    const normalizedOrigin = normalizeOrigin(origin);
+
     // If no CORS_ORIGIN is set, allow all origins in development/default mode.
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    if (
+      allowedOrigins.length === 0 ||
+      allowedOrigins.includes(normalizedOrigin)
+    ) {
       return callback(null, true);
     }
 
