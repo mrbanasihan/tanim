@@ -3,32 +3,65 @@ const { KAFKA_TOPICS } = require("../../constants/kafka");
 const { handleEvent } = require("../../handlers/kafka/eventHandlers");
 const { setKafkaState } = require("./state");
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const shouldRetryStartup = (error) => {
+  const message = String(error?.message || "");
+
+  return (
+    message.includes("group coordinator is not available") ||
+    message.includes("broker not available") ||
+    message.includes("Connection refused") ||
+    message.includes("The coordinator is not available") ||
+    message.includes("Request is not valid given the current SASL state") ||
+    message.includes("Not authorized to access topics")
+  );
+};
+
+const startConsumerOnce = async () => {
+  await ensureTopics();
+  const consumer = await connectConsumer();
+
+  for (const topic of Object.values(KAFKA_TOPICS)) {
+    await consumer.subscribe({ topic, fromBeginning: false });
+  }
+
+  setKafkaState({ consumerReady: true, lastError: null });
+
+  await consumer.run({
+    eachMessage: async ({ message }) => {
+      if (!message.value) {
+        return;
+      }
+
+      const event = JSON.parse(message.value.toString("utf8"));
+      await handleEvent(event);
+    },
+  });
+};
+
 const startConsumer = async () => {
   setKafkaState({ consumerReady: false, lastError: null });
 
-  try {
-    await ensureTopics();
-    const consumer = await connectConsumer();
+  const maxAttempts = Number(process.env.KAFKA_STARTUP_RETRIES) || 8;
+  const retryDelayMs = Number(process.env.KAFKA_STARTUP_RETRY_DELAY_MS) || 5000;
 
-    for (const topic of Object.values(KAFKA_TOPICS)) {
-      await consumer.subscribe({ topic, fromBeginning: false });
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await startConsumerOnce();
+      return;
+    } catch (error) {
+      setKafkaState({ consumerReady: false, lastError: error.message });
+
+      if (attempt === maxAttempts || !shouldRetryStartup(error)) {
+        throw error;
+      }
+
+      console.warn(
+        `Kafka consumer startup attempt ${attempt} failed: ${error.message}. Retrying in ${retryDelayMs}ms...`,
+      );
+      await sleep(retryDelayMs);
     }
-
-    setKafkaState({ consumerReady: true, lastError: null });
-
-    await consumer.run({
-      eachMessage: async ({ message }) => {
-        if (!message.value) {
-          return;
-        }
-
-        const event = JSON.parse(message.value.toString("utf8"));
-        await handleEvent(event);
-      },
-    });
-  } catch (error) {
-    setKafkaState({ consumerReady: false, lastError: error.message });
-    throw error;
   }
 };
 
