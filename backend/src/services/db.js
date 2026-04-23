@@ -23,8 +23,11 @@ const getSslConfig = () => {
     ? getBooleanEnv(process.env.DB_SSL_REJECT_UNAUTHORIZED)
     : false;
 
+  const servername = process.env.DB_SSL_SERVERNAME || process.env.DB_HOST;
+
   return {
     rejectUnauthorized,
+    servername,
   };
 };
 
