@@ -37,12 +37,46 @@ const normalizeOrigin = (origin) => origin.trim().replace(/\/$/, "");
 const configuredOrigins =
   process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "";
 
+const allowVercelPreviews = isEnabled(process.env.CORS_ALLOW_VERCEL_PREVIEWS);
+
 const allowedOrigins = configuredOrigins
   ? configuredOrigins
       .split(",")
       .map((origin) => normalizeOrigin(origin))
       .filter(Boolean)
   : [];
+
+const wildcardToRegex = (originPattern) => {
+  const escaped = originPattern
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*");
+
+  return new RegExp(`^${escaped}$`);
+};
+
+const isAllowedOrigin = (origin) => {
+  if (allowedOrigins.length === 0) {
+    return true;
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  const wildcardMatches = allowedOrigins
+    .filter((value) => value.includes("*"))
+    .some((pattern) => wildcardToRegex(pattern).test(origin));
+
+  if (wildcardMatches) {
+    return true;
+  }
+
+  if (allowVercelPreviews && origin.endsWith(".vercel.app")) {
+    return true;
+  }
+
+  return false;
+};
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -54,14 +88,14 @@ const corsOptions = {
     const normalizedOrigin = normalizeOrigin(origin);
 
     // If no CORS_ORIGIN is set, allow all origins in development/default mode.
-    if (
-      allowedOrigins.length === 0 ||
-      allowedOrigins.includes(normalizedOrigin)
-    ) {
+    if (isAllowedOrigin(normalizedOrigin)) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    console.warn(
+      `CORS rejected origin: ${normalizedOrigin}. Allowed origins: ${allowedOrigins.join(", ") || "<all>"}`,
+    );
+    return callback(null, false);
   },
 };
 
