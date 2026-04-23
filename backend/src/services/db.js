@@ -1,7 +1,10 @@
 const { Pool } = require("pg");
+const dns = require("dns");
 
 // Load environment variables
 require("dotenv").config();
+
+dns.setDefaultResultOrder("ipv4first");
 
 const getBooleanEnv = (value) => {
   if (value === undefined) {
@@ -35,6 +38,7 @@ const dbConfig = {
   max: 20, // Maximum number of active connections
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  family: 4,
   ssl: getSslConfig(),
 };
 

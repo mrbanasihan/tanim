@@ -38,15 +38,49 @@ const readFileIfPresent = (filePath) => {
   return fs.readFileSync(resolvedPath, "utf8");
 };
 
+const resolveKafkaSecret = (envPath, envValue, fallbackNames = []) => {
+  if (envValue) {
+    return envValue;
+  }
+
+  const candidates = [envPath, ...fallbackNames]
+    .filter(Boolean)
+    .map((candidate) =>
+      path.isAbsolute(candidate)
+        ? candidate
+        : path.resolve(process.cwd(), candidate),
+    );
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return fs.readFileSync(candidate, "utf8");
+    }
+  }
+
+  return undefined;
+};
+
 const getSslConfig = () => {
   if (!getBooleanEnv(process.env.KAFKA_SSL)) {
     return undefined;
   }
 
   const sslConfig = {};
-  const ca = readFileIfPresent(process.env.KAFKA_CA_CERT_PATH);
-  const cert = readFileIfPresent(process.env.KAFKA_CLIENT_CERT_PATH);
-  const key = readFileIfPresent(process.env.KAFKA_CLIENT_KEY_PATH);
+  const ca = resolveKafkaSecret(
+    process.env.KAFKA_CA_CERT_PATH,
+    process.env.KAFKA_CA_CERT,
+    ["ca.pem", "../ca.pem"],
+  );
+  const cert = resolveKafkaSecret(
+    process.env.KAFKA_CLIENT_CERT_PATH,
+    process.env.KAFKA_CLIENT_CERT,
+    ["service.cert", "../service.cert"],
+  );
+  const key = resolveKafkaSecret(
+    process.env.KAFKA_CLIENT_KEY_PATH,
+    process.env.KAFKA_CLIENT_KEY,
+    ["service.key", "../service.key"],
+  );
 
   if (ca) {
     sslConfig.ca = [ca];
