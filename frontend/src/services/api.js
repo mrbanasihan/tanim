@@ -2,7 +2,23 @@ import axios from "axios";
 
 // Use relative API path by default so requests work from other devices on LAN.
 // You can override with VITE_API_BASE_URL when needed.
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+const normalizeBaseUrl = (value) => {
+  if (!value) {
+    return "/api";
+  }
+
+  const trimmed = String(value).trim().replace(/\/$/, "");
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+  }
+
+  return trimmed;
+};
+
+const apiBaseUrl = normalizeBaseUrl(
+  import.meta.env.VITE_API_BASE_URL || "/api",
+);
 
 // Create axios instance with base URL
 const api = axios.create({
