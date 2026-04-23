@@ -102,6 +102,17 @@ const getSslConfig = () => {
 };
 
 const getSaslConfig = () => {
+  const hasCertificateAuth =
+    Boolean(process.env.KAFKA_CA_CERT_PATH || process.env.KAFKA_CA_CERT) ||
+    Boolean(
+      process.env.KAFKA_CLIENT_CERT_PATH || process.env.KAFKA_CLIENT_CERT,
+    ) ||
+    Boolean(process.env.KAFKA_CLIENT_KEY_PATH || process.env.KAFKA_CLIENT_KEY);
+
+  if (hasCertificateAuth) {
+    return undefined;
+  }
+
   const username =
     process.env.KAFKA_SASL_USERNAME || process.env.KAFKA_USERNAME;
   const password =
