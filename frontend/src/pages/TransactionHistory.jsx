@@ -14,7 +14,7 @@ const TransactionHistory = () => {
     crop_type: "",
     variety: "",
   });
-  const [sortType, setSortType] = useState("date"); // date, quantity
+  const [sortType, setSortType] = useState("name"); // name, date, quantity
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
   const [cropTypes, setCropTypes] = useState([]);
   const [varieties, setVarieties] = useState([]);
@@ -79,7 +79,20 @@ const TransactionHistory = () => {
 
     const sorted = [...transactionsArray];
 
-    if (sortType === "date") {
+    if (sortType === "name") {
+      if (sortOrder === "asc") {
+        return sorted.sort((a, b) =>
+          (a.batch_name || a.seed_id || "").localeCompare(
+            b.batch_name || b.seed_id || "",
+          ),
+        );
+      }
+      return sorted.sort((a, b) =>
+        (b.batch_name || b.seed_id || "").localeCompare(
+          a.batch_name || a.seed_id || "",
+        ),
+      );
+    } else if (sortType === "date") {
       if (sortOrder === "asc") {
         return sorted.sort(
           (a, b) => new Date(a.created_at) - new Date(b.created_at),
@@ -149,6 +162,17 @@ const TransactionHistory = () => {
     ? cropVarietyMap[filters.crop_type] || []
     : varieties;
 
+  const clearAllFilters = () => {
+    setFilters({
+      type: "",
+      seed_lot_id: "",
+      crop_type: "",
+      variety: "",
+    });
+    setSortType("name");
+    setSortOrder("desc");
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading...</div>;
   }
@@ -176,158 +200,309 @@ const TransactionHistory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-fit">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">
-                  Transaction Type
-                </span>
-                <select
-                  name="type"
-                  value={filters.type}
-                  onChange={handleFilterChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-sm"
-                >
-                  <option value="">All Types</option>
-                  <option value="outgoing">Check Out</option>
-                  {user?.role !== "guest" && (
-                    <option value="disposal">Disposal</option>
+        <div className="bg-white rounded-lg shadow-md mb-6">
+          <div className="p-4">
+            <div className="flex flex-wrap lg:flex-nowrap gap-3 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Search
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    name="seed_lot_id"
+                    placeholder="Search transactions..."
+                    value={filters.seed_lot_id}
+                    onChange={handleFilterChange}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
+                  />
+                  {filters.seed_lot_id && (
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, seed_lot_id: "" }))
+                      }
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <svg
+                        className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   )}
-                </select>
-              </label>
-            </div>
-            <div className="flex-1 min-w-fit">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">
+                </div>
+              </div>
+
+              <div className="relative dropdown-container w-40">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Crop Type
-                </span>
-                <select
-                  name="crop_type"
-                  value={filters.crop_type}
-                  onChange={handleFilterChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-sm"
-                >
-                  <option value="">All Crops</option>
-                  {cropTypes.map((crop) => (
-                    <option key={crop} value={crop}>
-                      {crop}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="flex-1 min-w-fit">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">
+                </label>
+                <div className="relative">
+                  <select
+                    name="crop_type"
+                    value={filters.crop_type}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  >
+                    <option value="">All Crops</option>
+                    {cropTypes.map((crop) => (
+                      <option key={crop} value={crop}>
+                        {crop}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="relative dropdown-container w-40">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Variety
+                </label>
+                <div className="relative">
+                  <select
+                    name="variety"
+                    value={filters.variety}
+                    onChange={handleFilterChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  >
+                    <option value="">All Varieties</option>
+                    {visibleVarieties.map((variety) => (
+                      <option key={variety} value={variety}>
+                        {variety}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Sort By
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleSort("name")}
+                    className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                      sortType === "name"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                    title={
+                      sortType === "name" && sortOrder === "asc"
+                        ? "Sort Z-A"
+                        : "Sort A-Z"
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {sortType === "name" && sortOrder === "asc" ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                        />
+                      ) : sortType === "name" && sortOrder === "desc" ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 4h13M3 8h9m-9 4h9m5-4l4 4m0 0l4-4m-4 4V4"
+                        />
+                      ) : (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                        />
+                      )}
+                    </svg>
+                    <span className="text-sm">Name</span>
+                  </button>
+                  <button
+                    onClick={() => toggleSort("date")}
+                    className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                      sortType === "date"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                    title={
+                      sortType === "date" && sortOrder === "asc"
+                        ? "Oldest first"
+                        : "Newest first"
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {sortType === "date" && sortOrder === "desc" ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
+                      ) : (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      )}
+                    </svg>
+                    <span className="text-sm">Date</span>
+                  </button>
+                  <button
+                    onClick={() => toggleSort("quantity")}
+                    className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
+                      sortType === "quantity"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                    title={
+                      sortType === "quantity" && sortOrder === "asc"
+                        ? "Lowest first"
+                        : "Highest first"
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {sortType === "quantity" && sortOrder === "desc" ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
+                      ) : (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      )}
+                    </svg>
+                    <span className="text-sm">Qty</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 opacity-0">
+                  Clear
+                </label>
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm whitespace-nowrap"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {(filters.type ||
+              filters.seed_lot_id ||
+              filters.crop_type ||
+              filters.variety) && (
+              <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap gap-2">
+                <span className="text-xs text-gray-500 mr-1 font-medium">
+                  Active filters:
                 </span>
-                <select
-                  name="variety"
-                  value={filters.variety}
-                  onChange={handleFilterChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-sm"
-                >
-                  <option value="">All Varieties</option>
-                  {visibleVarieties.map((variety) => (
-                    <option key={variety} value={variety}>
-                      {variety}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="flex-1 min-w-fit">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700 mb-1 block">
-                  Batch Name
-                </span>
-                <input
-                  type="text"
-                  name="seed_lot_id"
-                  placeholder="Search..."
-                  value={filters.seed_lot_id}
-                  onChange={handleFilterChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-sm"
-                />
-              </label>
-            </div>
-            <div className="flex gap-1">
-              <button
-                onClick={() => toggleSort("date")}
-                className={`px-2 py-2 rounded-lg transition flex items-center gap-1 whitespace-nowrap ${
-                  sortType === "date"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-                title={
-                  sortType === "date" && sortOrder === "asc"
-                    ? "Oldest first"
-                    : "Newest first"
-                }
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {sortType === "date" && sortOrder === "desc" ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  )}
-                </svg>
-                <span className="text-xs">Date</span>
-              </button>
-              <button
-                onClick={() => toggleSort("quantity")}
-                className={`px-2 py-2 rounded-lg transition flex items-center gap-1 whitespace-nowrap ${
-                  sortType === "quantity"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-                title={
-                  sortType === "quantity" && sortOrder === "asc"
-                    ? "Lowest first"
-                    : "Highest first"
-                }
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {sortType === "quantity" && sortOrder === "desc" ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  )}
-                </svg>
-                <span className="text-xs">Qty</span>
-              </button>
-            </div>
+                {filters.type && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                    Type: {filters.type}
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, type: "" }))
+                      }
+                      className="ml-1.5 hover:text-blue-600 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filters.seed_lot_id && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                    Search: {filters.seed_lot_id}
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, seed_lot_id: "" }))
+                      }
+                      className="ml-1.5 hover:text-green-600 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filters.crop_type && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                    Crop: {filters.crop_type}
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          crop_type: "",
+                          variety: "",
+                        }))
+                      }
+                      className="ml-1.5 hover:text-purple-600 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {filters.variety && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                    Variety: {filters.variety}
+                    <button
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, variety: "" }))
+                      }
+                      className="ml-1.5 hover:text-yellow-600 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
