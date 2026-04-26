@@ -278,6 +278,7 @@ const SeedForm = () => {
               value={formData.gross_weight}
               onChange={handleChange}
               step="0.01"
+              inputMode="decimal"
               required={!isEditing}
               readOnly={isEditing}
               className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEditing ? "bg-gray-100 text-gray-600" : ""}`}
@@ -300,6 +301,7 @@ const SeedForm = () => {
               onChange={handleChange}
               step="0.01"
               min="0"
+              inputMode="decimal"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

@@ -28,8 +28,8 @@ const Navbar = () => {
     // Store in localStorage for persistence
     localStorage.setItem("selectedCropGroup", cropGroup);
     setShowUserMenu(false);
-    // Refresh the page to apply crop group filter
-    window.location.reload();
+    // Navigate within SPA to avoid host-level 404 on nested routes after switch
+    navigate("/", { replace: true });
   };
 
   const isActive = (path) => {

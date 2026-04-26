@@ -1,6 +1,6 @@
 // Email validation
 const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
+  const emailRegex = /^[^\s@]+@example\.com$/i;
   return emailRegex.test(email);
 };
 
@@ -24,6 +24,16 @@ const isValidQuantity = (quantity) => {
   // Check for max 2 decimal places
   const decimalPlaces = (num.toString().split(".")[1] || "").length;
   return decimalPlaces <= 2;
+};
+
+// Contact number validation (09XXXXXXXXX)
+const isValidContactNumber = (contact) => {
+  return /^09\d{9}$/.test(String(contact || ""));
+};
+
+// Integer validation (positive whole number)
+const isValidInteger = (value) => {
+  return /^\d+$/.test(String(value ?? ""));
 };
 
 // Date validation (YYYY-MM-DD format and not future date)
@@ -85,6 +95,7 @@ const validateSeedLot = (data) => {
 
   if (
     data.cleaned_quantity !== undefined &&
+    data.cleaned_quantity !== null &&
     data.cleaned_quantity !== "" &&
     !isValidQuantity(data.cleaned_quantity)
   ) {
@@ -117,6 +128,10 @@ const validateCheckOut = (data) => {
 
   if (!data.recipient || data.recipient.trim() === "") {
     errors.push("Recipient is required");
+  }
+
+  if (data.contact && !isValidContactNumber(data.contact)) {
+    errors.push("Contact number must be 11 digits and start with 09");
   }
 
   return {
@@ -213,6 +228,10 @@ const validateUserRegistration = (data) => {
     errors.push("Role must be one of: admin, staff, guest");
   }
 
+  if (data.email && !data.email.toLowerCase().endsWith("@example.com")) {
+    errors.push("Email must use the @example.com domain");
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -294,12 +313,19 @@ const sanitizeQuantity = (quantity) => {
   return isNaN(num) ? 0 : Math.abs(num);
 };
 
+const sanitizeContactNumber = (contact) => {
+  if (!contact || typeof contact !== "string") return "";
+  return contact.replace(/\D/g, "").slice(0, 11);
+};
+
 module.exports = {
   // Validators
   isValidEmail,
   isValidPassword,
   isValidName,
   isValidQuantity,
+  isValidContactNumber,
+  isValidInteger,
   isValidDate,
   isValidUUID,
   isValidPercentage,
@@ -319,4 +345,5 @@ module.exports = {
   sanitizeString,
   sanitizeEmail,
   sanitizeQuantity,
+  sanitizeContactNumber,
 };

@@ -1,6 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const UserModel = require("../models/userModel");
+const {
+  isValidEmail,
+  validateUserRegistration,
+  sanitizeEmail,
+  sanitizeString,
+} = require("../utils/validation");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "6h"; // Token expiration in 6 hours
@@ -9,23 +15,31 @@ const AuthController = {
   // POST /api/auth/register
   async register(req, res) {
     try {
-      const { email, password, firstName, lastName, role } = req.body;
-      if (!email || !password || !firstName || !lastName) {
-        return res.status(400).json({ error: "All fields are required" });
+      const sanitizedData = {
+        email: sanitizeEmail(req.body.email),
+        password: req.body.password,
+        firstName: sanitizeString(req.body.firstName),
+        lastName: sanitizeString(req.body.lastName),
+        role: req.body.role,
+      };
+
+      const validation = validateUserRegistration(sanitizedData);
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
-      const existingUser = await UserModel.findByEmail(email);
+      const existingUser = await UserModel.findByEmail(sanitizedData.email);
       if (existingUser) {
         return res.status(409).json({ error: "Email already in use" });
       }
 
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await bcrypt.hash(sanitizedData.password, 10);
       const user = await UserModel.create(
-        email,
+        sanitizedData.email,
         passwordHash,
-        firstName,
-        lastName,
-        role || "guest",
+        sanitizedData.firstName,
+        sanitizedData.lastName,
+        sanitizedData.role || "guest",
       );
 
       res.status(201).son({
@@ -41,12 +55,19 @@ const AuthController = {
   // POST /api/auth/login
   async login(req, res) {
     try {
-      const { email, password } = req.body;
+      const email = sanitizeEmail(req.body.email);
+      const { password } = req.body;
 
       if (!email || !password) {
         return res
           .status(400)
           .json({ error: "Email and password are required" });
+      }
+
+      if (!isValidEmail(email)) {
+        return res
+          .status(400)
+          .json({ error: "Email must use the @example.com domain" });
       }
 
       // Find user by email in the database

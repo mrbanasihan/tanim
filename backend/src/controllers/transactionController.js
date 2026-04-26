@@ -1,4 +1,11 @@
 const TransactionModel = require("../models/transactionModel");
+const {
+  validateCheckOut,
+  validateDisposal,
+  sanitizeString,
+  sanitizeQuantity,
+  sanitizeContactNumber,
+} = require("../utils/validation");
 
 const TransactionController = {
   // GET /api/transactions
@@ -52,28 +59,30 @@ const TransactionController = {
         remarks,
       } = req.body;
       const seed_id = seedIdFromBody || seedLotIdFromBody;
+      const payload = {
+        seed_id,
+        quantity: sanitizeQuantity(quantity),
+        recipient: sanitizeString(recipient),
+        purpose: sanitizeString(purpose),
+        affiliation: sanitizeString(affiliation),
+        contact: sanitizeContactNumber(contact),
+        remarks: sanitizeString(remarks),
+      };
 
-      if (!seed_id || !quantity || !recipient) {
-        return res
-          .status(400)
-          .json({ error: "Seed ID, quantity, and recipient are required" });
-      }
-
-      if (quantity <= 0) {
-        return res
-          .status(400)
-          .json({ error: "Quantity must be greater than 0" });
+      const validation = validateCheckOut(payload);
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
       const transaction = await TransactionModel.checkOut(
-        seed_id,
+        payload.seed_id,
         req.user.userId,
-        quantity,
-        recipient,
-        purpose,
-        affiliation,
-        contact,
-        remarks,
+        payload.quantity,
+        payload.recipient,
+        payload.purpose,
+        payload.affiliation,
+        payload.contact,
+        payload.remarks,
       );
 
       res.status(201).json(transaction);
@@ -102,25 +111,24 @@ const TransactionController = {
         remarks,
       } = req.body;
       const seed_id = seedIdFromBody || seedLotIdFromBody;
+      const payload = {
+        seed_id,
+        quantity: sanitizeQuantity(quantity),
+        purpose: sanitizeString(purpose),
+        remarks: sanitizeString(remarks),
+      };
 
-      if (!seed_id || !quantity || !purpose) {
-        return res
-          .status(400)
-          .json({ error: "Seed ID, quantity, and purpose are required" });
-      }
-
-      if (quantity <= 0) {
-        return res
-          .status(400)
-          .json({ error: "Quantity must be greater than 0" });
+      const validation = validateDisposal(payload);
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
       const transaction = await TransactionModel.dispose(
-        seed_id,
+        payload.seed_id,
         req.user.userId,
-        quantity,
-        purpose,
-        remarks,
+        payload.quantity,
+        payload.purpose,
+        payload.remarks,
       );
 
       res.status(201).json(transaction);

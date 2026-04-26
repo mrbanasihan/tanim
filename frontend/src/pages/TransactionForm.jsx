@@ -45,7 +45,13 @@ const TransactionForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let nextValue = value;
+
+    if (name === "contact") {
+      nextValue = value.replace(/\D/g, "").slice(0, 11);
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
 
     // When seed_id changes, fetch and display current quantity
     if (name === "seed_id" && value) {
@@ -163,6 +169,7 @@ const TransactionForm = () => {
               required
               min="0.01"
               step="0.01"
+              inputMode="decimal"
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -249,10 +256,14 @@ const TransactionForm = () => {
                   Contact
                 </label>
                 <input
-                  type="text"
+                  type="tel"
                   name="contact"
                   value={formData.contact}
                   onChange={handleChange}
+                  inputMode="numeric"
+                  maxLength={11}
+                  pattern="09[0-9]{9}"
+                  title="Contact number must be 11 digits and start with 09"
                   className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

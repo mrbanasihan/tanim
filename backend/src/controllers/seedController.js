@@ -1,4 +1,9 @@
 const SeedModel = require("../models/seedModel");
+const {
+  validateSeedLot,
+  sanitizeString,
+  sanitizeQuantity,
+} = require("../utils/validation");
 
 const SeedController = {
   // GET /api/seeds
@@ -43,19 +48,24 @@ const SeedController = {
   // POST /api/seeds
   async create(req, res) {
     try {
-      const seedData = req.body;
+      const seedData = {
+        ...req.body,
+        batch_name: sanitizeString(req.body.batch_name),
+        crop_type: sanitizeString(req.body.crop_type),
+        variety: sanitizeString(req.body.variety),
+        classification: sanitizeString(req.body.classification),
+        gross_weight: sanitizeQuantity(req.body.gross_weight),
+        cleaned_quantity:
+          req.body.cleaned_quantity !== undefined &&
+          req.body.cleaned_quantity !== ""
+            ? sanitizeQuantity(req.body.cleaned_quantity)
+            : null,
+        remarks: sanitizeString(req.body.remarks),
+      };
 
-      // Validation
-      if (
-        !seedData.crop_type ||
-        !seedData.variety ||
-        !seedData.classification ||
-        !seedData.gross_weight
-      ) {
-        return res.status(400).json({
-          error:
-            "Crop type, variety, classification, and gross weight are required to create a seed lot",
-        });
+      const validation = validateSeedLot(seedData);
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
       // Add user ID for backend tracking
@@ -74,7 +84,25 @@ const SeedController = {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const seedData = req.body;
+      const seedData = {
+        ...req.body,
+        batch_name: sanitizeString(req.body.batch_name),
+        crop_type: sanitizeString(req.body.crop_type),
+        variety: sanitizeString(req.body.variety),
+        classification: sanitizeString(req.body.classification),
+        gross_weight: sanitizeQuantity(req.body.gross_weight),
+        cleaned_quantity:
+          req.body.cleaned_quantity !== undefined &&
+          req.body.cleaned_quantity !== ""
+            ? sanitizeQuantity(req.body.cleaned_quantity)
+            : null,
+        remarks: sanitizeString(req.body.remarks),
+      };
+
+      const validation = validateSeedLot(seedData);
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join(", ") });
+      }
 
       const seed = await SeedModel.update(id, seedData);
 
