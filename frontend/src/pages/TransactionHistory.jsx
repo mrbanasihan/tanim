@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { filterByCropGroup } from "../utils/accessControl";
 
 const TransactionHistory = () => {
   const { user } = useAuth();
@@ -29,12 +30,16 @@ const TransactionHistory = () => {
   useEffect(() => {
     fetchDropdownData();
     fetchTransactions();
-  }, [filters, sortType, sortOrder]);
+  }, [filters, sortType, sortOrder, user?.role, user?.crop_groups]);
 
   const fetchDropdownData = async () => {
     try {
       const response = await api.get("/seeds");
-      const seedsData = response.data || [];
+      const seedsData = filterByCropGroup(
+        response.data || [],
+        user?.role,
+        user?.crop_groups,
+      );
 
       // Get unique crop types
       const uniqueCropTypes = [
@@ -94,7 +99,11 @@ const TransactionHistory = () => {
         if (value) params.append(key, value);
       });
       const response = await api.get(`/transactions?${params}`);
-      let transactionsData = response.data.map(normalizeTransaction);
+      let transactionsData = filterByCropGroup(
+        response.data.map(normalizeTransaction),
+        user?.role,
+        user?.crop_groups,
+      );
       if (user?.role === "guest") {
         transactionsData = transactionsData.filter(
           (transaction) => transaction.type === "outgoing",

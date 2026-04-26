@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { canAccessFeature } from "../utils/accessControl";
+import { CROP_CATALOG, getSelectedCropGroup } from "../constants/cropCatalog";
 
 const SeedForm = () => {
   const { id } = useParams();
@@ -27,45 +28,12 @@ const SeedForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const cropTypes = ["soybean", "mungbean", "peanut"];
-  const varietiesByType = {
-    soybean: [
-      "Tiwala 6",
-      "Tiwala 8",
-      "Tiwala 10",
-      "Tiwala 12",
-      "Tiwala 14",
-      "Tiwala 20",
-      "Tiwala 22",
-      "Tiwala 24",
-      "Tiwala 26",
-      "Select Tudela Black",
-      "Select Manchuria",
-    ],
-    mungbean: [
-      "Pagasa 1",
-      "Pagasa 3",
-      "Pagasa 5",
-      "Pagasa 7",
-      "Pagasa 9",
-      "Pagasa 11",
-      "Pagasa 15",
-      "PHL 14295",
-      "PHL 14296",
-      "PHL 12636",
-    ],
-    peanut: [
-      "Biyaya 2",
-      "Biyaya 4",
-      "Biyaya 6",
-      "Biyaya 8",
-      "Biyaya 10",
-      "Biyaya 12",
-      "Biyaya 14",
-      "Biyaya 16",
-      "Sibalom",
-    ],
-  };
+  const selectedCropGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
+  const groupCatalog = selectedCropGroup
+    ? CROP_CATALOG[selectedCropGroup] || {}
+    : {};
+  const cropTypes = Object.keys(groupCatalog);
+  const varietiesByType = groupCatalog;
   const classifications = [
     "nucleus",
     "breeder",

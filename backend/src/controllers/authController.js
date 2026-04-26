@@ -74,17 +74,19 @@ const AuthController = {
       // Create session in the database
       await UserModel.createSession(user.user_id, token, expiresAt);
 
+      const hydratedUser = await UserModel.findById(user.user_id);
+
       res.json({
         message: "Login successful",
         token: token,
         user: {
-          userId: user.user_id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          crop_groups: user.crop_groups,
-          current_crop_group: user.crop_groups?.[0] || "legumes",
+          userId: hydratedUser.user_id,
+          email: hydratedUser.email,
+          firstName: hydratedUser.first_name,
+          lastName: hydratedUser.last_name,
+          role: hydratedUser.role,
+          crop_groups: hydratedUser.crop_groups,
+          current_crop_group: hydratedUser.crop_groups?.[0] || "legumes",
         },
       });
     } catch (error) {

@@ -1,4 +1,5 @@
 const db = require("../services/db");
+const { CROP_GROUPS } = require("../constants/cropCatalog");
 
 const UserModel = {
   // Creates new user in the database
@@ -38,7 +39,7 @@ const UserModel = {
       const cropResult = await db.query(cropQuery, [userId]);
       user.crop_groups = cropResult.rows.map((r) => r.crop_group);
     } else {
-      user.crop_groups = ["all"]; // Admin has access to all
+      user.crop_groups = [...CROP_GROUPS];
     }
 
     return user;

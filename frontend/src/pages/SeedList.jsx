@@ -190,7 +190,8 @@ const SeedList = () => {
       ]);
 
       // Get unique crop types
-      const seedsData = seedsRes.data || [];
+      let seedsData = seedsRes.data || [];
+      seedsData = filterByCropGroup(seedsData, user?.role, user?.crop_groups);
       const uniqueCropTypes = [
         ...new Set(seedsData.map((seed) => seed.crop_type).filter(Boolean)),
       ].sort();

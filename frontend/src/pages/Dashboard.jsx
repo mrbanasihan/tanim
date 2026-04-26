@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import { filterByCropGroup } from "../utils/accessControl";
 
 function Dashboard() {
   const { user } = useAuth();
@@ -74,7 +75,16 @@ function Dashboard() {
           api.get("/transactions?limit=10"),
         ]);
 
-        const transactions = transactionsRes.data.map(normalizeTransaction);
+        const filteredSeeds = filterByCropGroup(
+          seedsRes.data || [],
+          user?.role,
+          user?.crop_groups,
+        );
+        const transactions = filterByCropGroup(
+          (transactionsRes.data || []).map(normalizeTransaction),
+          user?.role,
+          user?.crop_groups,
+        );
 
         // Extract unique users from recent transactions with first and last name
         const uniqueUsers = Array.from(
@@ -96,7 +106,7 @@ function Dashboard() {
         ).slice(0, 5);
 
         setStats({
-          totalSeeds: seedsRes.data.length,
+          totalSeeds: filteredSeeds.length,
           totalProjects: projectsRes.data.length,
           recentTransactions: transactions,
           projects: projectsRes.data.filter((p) => p.status !== "completed"),
@@ -110,7 +120,7 @@ function Dashboard() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user?.role, user?.crop_groups]);
 
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>;

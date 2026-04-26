@@ -28,7 +28,7 @@ const TransactionForm = () => {
 
   useEffect(() => {
     fetchSeedLots();
-  }, []);
+  }, [user?.role, user?.crop_groups]);
 
   const fetchSeedLots = async () => {
     try {

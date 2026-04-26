@@ -13,7 +13,7 @@ import {
 import { Pie, Bar, Doughnut } from "react-chartjs-2";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { canAccessFeature } from "../utils/accessControl";
+import { canAccessFeature, filterByCropGroup } from "../utils/accessControl";
 
 ChartJS.register(
   ArcElement,
@@ -106,9 +106,20 @@ const Reports = () => {
         api.get("/projects"),
       ]);
 
+      const filteredSeeds = filterByCropGroup(
+        seedsRes.data || [],
+        user?.role,
+        user?.crop_groups,
+      );
+      const filteredTransactions = filterByCropGroup(
+        transactionsRes.data || [],
+        user?.role,
+        user?.crop_groups,
+      );
+
       setReportData({
-        seeds: seedsRes.data || [],
-        transactions: transactionsRes.data || [],
+        seeds: filteredSeeds,
+        transactions: filteredTransactions,
         projects: projectsRes.data || [],
       });
 

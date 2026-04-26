@@ -1,4 +1,9 @@
 // Role-based access control utilities for frontend
+import {
+  CROP_CATALOG,
+  CROP_GROUPS,
+  getSelectedCropGroup,
+} from "../constants/cropCatalog";
 
 export const canAccessFeature = (userRole, feature) => {
   const featureAccess = {
@@ -54,56 +59,45 @@ export const canAccessFeature = (userRole, feature) => {
 };
 
 export const getVisibleCropTypes = (userRole, cropGroups, allCropTypes) => {
-  // Admin can see all crop types
-  if (userRole === "admin") {
-    return allCropTypes;
+  const selectedGroup = getSelectedCropGroup(userRole, cropGroups);
+  if (selectedGroup) {
+    return Object.keys(CROP_CATALOG[selectedGroup] || {});
   }
 
-  // Map crop groups to their crop types
-  const cropGroupMap = {
-    legumes: ["soybean", "mungbean", "peanut"],
-    cereals: ["rice", "corn", "wheat"],
-    vegetables: ["tomato", "lettuce", "carrot"],
-  };
-
-  // Combine all crop types from user's assigned crop groups
-  const visibleTypes = new Set();
-  (cropGroups || []).forEach((group) => {
-    (cropGroupMap[group] || []).forEach((crop) => visibleTypes.add(crop));
-  });
-
-  return Array.from(visibleTypes);
+  return allCropTypes || [];
 };
 
 export const filterByCropGroup = (items, userRole, cropGroups) => {
-  // Admin sees all items
-  if (userRole === "admin") {
-    return items;
-  }
+  const inputItems = Array.isArray(items) ? items : [];
 
-  const effectiveCropGroups =
-    Array.isArray(cropGroups) && cropGroups.length > 0
-      ? cropGroups
-      : ["researcher", "staff"].includes(userRole)
-        ? ["legumes"]
-        : [];
+  const allowedGroups =
+    userRole === "admin"
+      ? CROP_GROUPS
+      : Array.isArray(cropGroups) && cropGroups.length > 0
+        ? cropGroups.filter((group) => CROP_GROUPS.includes(group))
+        : ["researcher", "staff"].includes(userRole)
+          ? ["legumes"]
+          : [];
 
-  if (effectiveCropGroups.length === 0) {
+  if (allowedGroups.length === 0) {
     return [];
   }
 
-  // Get visible crop types for this user
-  const cropGroupMap = {
-    legumes: ["soybean", "mungbean", "peanut"],
-    cereals: ["rice", "corn", "wheat"],
-    vegetables: ["tomato", "lettuce", "carrot"],
-  };
+  const selectedGroup = getSelectedCropGroup(userRole, allowedGroups);
+  const effectiveGroups =
+    selectedGroup && allowedGroups.includes(selectedGroup)
+      ? [selectedGroup]
+      : allowedGroups;
 
   const visibleCrops = new Set();
-  effectiveCropGroups.forEach((group) => {
-    (cropGroupMap[group] || []).forEach((crop) => visibleCrops.add(crop));
+  effectiveGroups.forEach((group) => {
+    Object.keys(CROP_CATALOG[group] || {}).forEach((crop) => {
+      visibleCrops.add(crop);
+    });
   });
 
-  // Filter items by visible crop types
-  return items.filter((item) => visibleCrops.has(item.crop_type));
+  return inputItems.filter((item) => visibleCrops.has(item.crop_type));
 };
+
+export const getCurrentCropGroup = (userRole, cropGroups) =>
+  getSelectedCropGroup(userRole, cropGroups);

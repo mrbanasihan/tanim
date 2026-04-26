@@ -1,4 +1,5 @@
 const db = require("../services/db");
+const { CROP_CATALOG } = require("../constants/cropCatalog");
 
 const AccessControlUtils = {
   // Get all crop groups assigned to a user
@@ -32,55 +33,18 @@ const AccessControlUtils = {
 
   // Get all crops for a specific crop group
   getCropsForGroup(cropGroup) {
-    const cropMap = {
-      legumes: ["soybean", "mungbean", "peanut"],
-      cereals: ["rice", "corn", "wheat"], // Future groups
-      vegetables: ["tomato", "lettuce", "carrot"], // Future groups
-    };
-    return cropMap[cropGroup] || [];
+    return Object.keys(CROP_CATALOG[cropGroup] || {});
   },
 
   // Get varieties for a crop within a crop group
   getVarietiesForCrop(crop) {
-    const varietyMap = {
-      soybean: [
-        "Tiwala 6",
-        "Tiwala 8",
-        "Tiwala 10",
-        "Tiwala 12",
-        "Tiwala 14",
-        "Tiwala 20",
-        "Tiwala 22",
-        "Tiwala 24",
-        "Tiwala 26",
-        "Select Tudela Black",
-        "Select Manchuria",
-      ],
-      mungbean: [
-        "Pagasa 1",
-        "Pagasa 3",
-        "Pagasa 5",
-        "Pagasa 7",
-        "Pagasa 9",
-        "Pagasa 11",
-        "Pagasa 15",
-        "PHL 14295",
-        "PHL 14296",
-        "PHL 12636",
-      ],
-      peanut: [
-        "Biyaya 2",
-        "Biyaya 4",
-        "Biyaya 6",
-        "Biyaya 8",
-        "Biyaya 10",
-        "Biyaya 12",
-        "Biyaya 14",
-        "Biyaya 16",
-        "Sibalom",
-      ],
-    };
-    return varietyMap[crop] || [];
+    for (const groupCatalog of Object.values(CROP_CATALOG)) {
+      if (groupCatalog[crop]) {
+        return groupCatalog[crop];
+      }
+    }
+
+    return [];
   },
 
   // Check if user has access to specific features based on role
