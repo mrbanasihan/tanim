@@ -18,6 +18,7 @@ const SeedList = () => {
   const [sortOrder, setSortOrder] = useState("asc"); // asc, desc
   const [cropTypes, setCropTypes] = useState([]);
   const [varieties, setVarieties] = useState([]);
+  const [cropVarietyMap, setCropVarietyMap] = useState({});
   const [projects, setProjects] = useState([]);
   const [showCropTypeDropdown, setShowCropTypeDropdown] = useState(false);
   const [showVarietyDropdown, setShowVarietyDropdown] = useState(false);
@@ -203,6 +204,21 @@ const SeedList = () => {
       ].sort();
       setVarieties(uniqueVarieties);
 
+      const nextCropVarietyMap = {};
+      seedsData.forEach((seed) => {
+        if (!seed?.crop_type || !seed?.variety) return;
+        if (!nextCropVarietyMap[seed.crop_type]) {
+          nextCropVarietyMap[seed.crop_type] = new Set();
+        }
+        nextCropVarietyMap[seed.crop_type].add(seed.variety);
+      });
+
+      const normalizedCropVarietyMap = {};
+      Object.entries(nextCropVarietyMap).forEach(([crop, varietySet]) => {
+        normalizedCropVarietyMap[crop] = Array.from(varietySet).sort();
+      });
+      setCropVarietyMap(normalizedCropVarietyMap);
+
       // Get projects - using project_name field
       let projectsData = [];
       if (projectsRes.data) {
@@ -225,6 +241,7 @@ const SeedList = () => {
       console.error("Error fetching dropdown data:", error);
       setCropTypes([]);
       setVarieties([]);
+      setCropVarietyMap({});
       setProjects([]);
     }
   };
@@ -245,11 +262,12 @@ const SeedList = () => {
   };
 
   const handleCropTypeSelect = (cropType) => {
-    handleFilterChange("crop_type", cropType);
+    setFilters((prev) => ({ ...prev, crop_type: cropType, variety: "" }));
     setShowCropTypeDropdown(false);
     setShowVarietyDropdown(false);
     setShowProjectDropdown(false);
     setCropTypeSearch("");
+    setVarietySearch("");
   };
 
   const handleVarietySelect = (variety) => {
@@ -290,7 +308,11 @@ const SeedList = () => {
       crop && crop.toLowerCase().includes((cropTypeSearch || "").toLowerCase()),
   );
 
-  const filteredVarieties = varieties.filter(
+  const baseVarieties = filters.crop_type
+    ? cropVarietyMap[filters.crop_type] || []
+    : varieties;
+
+  const filteredVarieties = baseVarieties.filter(
     (variety) =>
       variety &&
       variety.toLowerCase().includes((varietySearch || "").toLowerCase()),

@@ -18,6 +18,7 @@ const TransactionHistory = () => {
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
   const [cropTypes, setCropTypes] = useState([]);
   const [varieties, setVarieties] = useState([]);
+  const [cropVarietyMap, setCropVarietyMap] = useState({});
   const navigate = useNavigate();
 
   const normalizeTransaction = (transaction) => ({
@@ -52,8 +53,24 @@ const TransactionHistory = () => {
         ...new Set(seedsData.map((seed) => seed.variety).filter(Boolean)),
       ].sort();
       setVarieties(uniqueVarieties);
+
+      const nextCropVarietyMap = {};
+      seedsData.forEach((seed) => {
+        if (!seed?.crop_type || !seed?.variety) return;
+        if (!nextCropVarietyMap[seed.crop_type]) {
+          nextCropVarietyMap[seed.crop_type] = new Set();
+        }
+        nextCropVarietyMap[seed.crop_type].add(seed.variety);
+      });
+
+      const normalizedCropVarietyMap = {};
+      Object.entries(nextCropVarietyMap).forEach(([crop, varietySet]) => {
+        normalizedCropVarietyMap[crop] = Array.from(varietySet).sort();
+      });
+      setCropVarietyMap(normalizedCropVarietyMap);
     } catch (error) {
       console.error("Error fetching dropdown data:", error);
+      setCropVarietyMap({});
     }
   };
 
@@ -120,8 +137,17 @@ const TransactionHistory = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
+    setFilters((prev) => {
+      if (name === "crop_type") {
+        return { ...prev, crop_type: value, variety: "" };
+      }
+      return { ...prev, [name]: value };
+    });
   };
+
+  const visibleVarieties = filters.crop_type
+    ? cropVarietyMap[filters.crop_type] || []
+    : varieties;
 
   if (loading) {
     return <div className="text-center py-8">Loading...</div>;
@@ -203,7 +229,7 @@ const TransactionHistory = () => {
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-sm"
                 >
                   <option value="">All Varieties</option>
-                  {varieties.map((variety) => (
+                  {visibleVarieties.map((variety) => (
                     <option key={variety} value={variety}>
                       {variety}
                     </option>
