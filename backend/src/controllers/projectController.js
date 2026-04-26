@@ -1,4 +1,5 @@
 const ProjectModel = require("../models/projectModel");
+const { sanitizeString, sanitizeTitleCase } = require("../utils/validation");
 
 const ProjectController = {
   // GET /api/projects
@@ -35,16 +36,20 @@ const ProjectController = {
       const { projectName, description, startDate, endDate, projectCode } =
         req.body;
 
-      if (!projectName) {
+      const normalizedProjectName = sanitizeTitleCase(projectName);
+      const normalizedDescription = sanitizeString(description);
+      const normalizedProjectCode = sanitizeString(projectCode);
+
+      if (!normalizedProjectName) {
         return res.status(400).json({ error: "Project name is required" });
       }
 
       const project = await ProjectModel.create(
-        projectName,
-        description,
+        normalizedProjectName,
+        normalizedDescription,
         startDate,
         endDate,
-        projectCode,
+        normalizedProjectCode,
         req.user.userId,
       );
 
@@ -62,13 +67,17 @@ const ProjectController = {
       const { projectName, description, startDate, endDate, projectCode } =
         req.body;
 
+      const normalizedProjectName = sanitizeTitleCase(projectName);
+      const normalizedDescription = sanitizeString(description);
+      const normalizedProjectCode = sanitizeString(projectCode);
+
       const project = await ProjectModel.update(
         id,
-        projectName,
-        description,
+        normalizedProjectName,
+        normalizedDescription,
         startDate,
         endDate,
-        projectCode,
+        normalizedProjectCode,
       );
 
       if (!project) {

@@ -303,6 +303,18 @@ const sanitizeString = (str) => {
   return str.trim().replace(/[<>]/g, ""); // Remove potential HTML tags
 };
 
+const sanitizeTitleCase = (str) => {
+  const sanitized = sanitizeString(str);
+  if (!sanitized) return "";
+
+  return sanitized
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const sanitizeEmail = (email) => {
   if (!email || typeof email !== "string") return "";
   return email.toLowerCase().trim();
@@ -343,6 +355,7 @@ module.exports = {
 
   // Sanitizers
   sanitizeString,
+  sanitizeTitleCase,
   sanitizeEmail,
   sanitizeQuantity,
   sanitizeContactNumber,

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
+import { toTitleCase } from "../utils/textFormat";
 
 const TransactionForm = () => {
   const { user } = useAuth();
@@ -151,7 +152,8 @@ const TransactionForm = () => {
               <option value="">Select a seed lot</option>
               {seedLots.map((seed) => (
                 <option key={seed.seed_id} value={seed.seed_id}>
-                  {seed.batch_name} - {seed.crop_type} {seed.variety}
+                  {toTitleCase(seed.batch_name)} - {toTitleCase(seed.crop_type)}{" "}
+                  {toTitleCase(seed.variety)}
                 </option>
               ))}
             </select>

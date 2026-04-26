@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
+import { toTitleCase } from "../utils/textFormat";
 
 const SeedList = () => {
   const { user } = useAuth();
@@ -327,6 +328,13 @@ const SeedList = () => {
         .includes((projectSearch || "").toLowerCase()),
   );
 
+  const selectedProjectName = filters.project_id
+    ? toTitleCase(
+        projects.find((p) => p.project_id === filters.project_id)
+          ?.project_name || "",
+      )
+    : "";
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this seed lot?")) {
       try {
@@ -475,7 +483,11 @@ const SeedList = () => {
                 <input
                   type="text"
                   placeholder="Crop type..."
-                  value={filters.crop_type || cropTypeSearch}
+                  value={
+                    filters.crop_type
+                      ? toTitleCase(filters.crop_type)
+                      : cropTypeSearch
+                  }
                   onChange={(e) => {
                     setCropTypeSearch(e.target.value);
                     if (filters.crop_type) {
@@ -518,7 +530,7 @@ const SeedList = () => {
                       onClick={() => handleCropTypeSelect(cropType)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
                     >
-                      {cropType}
+                      {toTitleCase(cropType)}
                     </button>
                   ))}
                   {filteredCropTypes.length === 0 && cropTypeSearch && (
@@ -542,7 +554,11 @@ const SeedList = () => {
                 <input
                   type="text"
                   placeholder="Variety..."
-                  value={filters.variety || varietySearch}
+                  value={
+                    filters.variety
+                      ? toTitleCase(filters.variety)
+                      : varietySearch
+                  }
                   onChange={(e) => {
                     setVarietySearch(e.target.value);
                     if (filters.variety) {
@@ -585,7 +601,7 @@ const SeedList = () => {
                       onClick={() => handleVarietySelect(variety)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
                     >
-                      {variety}
+                      {toTitleCase(variety)}
                     </button>
                   ))}
                   {filteredVarieties.length === 0 && varietySearch && (
@@ -609,14 +625,7 @@ const SeedList = () => {
                 <input
                   type="text"
                   placeholder="Project..."
-                  value={
-                    projectSearch ||
-                    (filters.project_id
-                      ? projects.find(
-                          (p) => p.project_id === filters.project_id,
-                        )?.project_name || ""
-                      : "")
-                  }
+                  value={projectSearch || selectedProjectName}
                   onChange={(e) => {
                     setProjectSearch(e.target.value);
                     if (filters.project_id) {
@@ -659,7 +668,7 @@ const SeedList = () => {
                       onClick={() => handleProjectSelect(project)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700"
                     >
-                      {project.project_name}
+                      {toTitleCase(project.project_name)}
                     </button>
                   ))}
                   {filteredProjects.length === 0 && projectSearch && (
@@ -834,7 +843,7 @@ const SeedList = () => {
               )}
               {filters.crop_type && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                  Crop: {filters.crop_type}
+                  Crop: {toTitleCase(filters.crop_type)}
                   <button
                     onClick={() => handleFilterChange("crop_type", "")}
                     className="ml-1.5 hover:text-green-600 font-bold"
@@ -845,7 +854,7 @@ const SeedList = () => {
               )}
               {filters.variety && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                  Variety: {filters.variety}
+                  Variety: {toTitleCase(filters.variety)}
                   <button
                     onClick={() => handleFilterChange("variety", "")}
                     className="ml-1.5 hover:text-purple-600 font-bold"
@@ -857,10 +866,10 @@ const SeedList = () => {
               {filters.project_id && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
                   Project:{" "}
-                  {
+                  {toTitleCase(
                     projects.find((p) => p.project_id === filters.project_id)
-                      ?.project_name
-                  }
+                      ?.project_name || "",
+                  )}
                   <button
                     onClick={() => handleFilterChange("project_id", "")}
                     className="ml-1.5 hover:text-yellow-600 font-bold"
@@ -910,15 +919,15 @@ const SeedList = () => {
                     className="hover:bg-gray-50 transition"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {seed.batch_name || "N/A"}
+                      {seed.batch_name ? toTitleCase(seed.batch_name) : "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
-                        {seed.crop_type || "N/A"}
+                        {seed.crop_type ? toTitleCase(seed.crop_type) : "N/A"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {seed.variety || "N/A"}
+                      {seed.variety ? toTitleCase(seed.variety) : "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className="font-semibold">

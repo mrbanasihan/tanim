@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { canAccessFeature } from "../utils/accessControl";
 import { CROP_CATALOG, getSelectedCropGroup } from "../constants/cropCatalog";
+import { toTitleCase } from "../utils/textFormat";
 
 const SeedForm = () => {
   const { id } = useParams();
@@ -186,7 +187,7 @@ const SeedForm = () => {
               <option value="">Select Crop Type</option>
               {cropTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  {toTitleCase(type)}
                 </option>
               ))}
             </select>
@@ -208,7 +209,7 @@ const SeedForm = () => {
               {formData.crop_type &&
                 varietiesByType[formData.crop_type]?.map((v) => (
                   <option key={v} value={v}>
-                    {v}
+                    {toTitleCase(v)}
                   </option>
                 ))}
             </select>
@@ -228,7 +229,7 @@ const SeedForm = () => {
               <option value="">Select Classification</option>
               {classifications.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {toTitleCase(c)}
                 </option>
               ))}
             </select>
@@ -261,7 +262,7 @@ const SeedForm = () => {
                 <option value="">Select Project</option>
                 {projects.map((p) => (
                   <option key={p.project_id} value={p.project_id}>
-                    {p.project_name}
+                    {toTitleCase(p.project_name)}
                   </option>
                 ))}
               </select>

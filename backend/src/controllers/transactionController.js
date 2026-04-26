@@ -3,6 +3,7 @@ const {
   validateCheckOut,
   validateDisposal,
   sanitizeString,
+  sanitizeTitleCase,
   sanitizeQuantity,
   sanitizeContactNumber,
 } = require("../utils/validation");
@@ -62,9 +63,9 @@ const TransactionController = {
       const payload = {
         seed_id,
         quantity: sanitizeQuantity(quantity),
-        recipient: sanitizeString(recipient),
-        purpose: sanitizeString(purpose),
-        affiliation: sanitizeString(affiliation),
+        recipient: sanitizeTitleCase(recipient),
+        purpose: sanitizeTitleCase(purpose),
+        affiliation: sanitizeTitleCase(affiliation),
         contact: sanitizeContactNumber(contact),
         remarks: sanitizeString(remarks),
       };
@@ -114,7 +115,7 @@ const TransactionController = {
       const payload = {
         seed_id,
         quantity: sanitizeQuantity(quantity),
-        purpose: sanitizeString(purpose),
+        purpose: sanitizeTitleCase(purpose),
         remarks: sanitizeString(remarks),
       };
 

@@ -2,6 +2,7 @@ const SeedModel = require("../models/seedModel");
 const {
   validateSeedLot,
   sanitizeString,
+  sanitizeTitleCase,
   sanitizeQuantity,
 } = require("../utils/validation");
 
@@ -50,9 +51,9 @@ const SeedController = {
     try {
       const seedData = {
         ...req.body,
-        batch_name: sanitizeString(req.body.batch_name),
-        crop_type: sanitizeString(req.body.crop_type),
-        variety: sanitizeString(req.body.variety),
+        batch_name: sanitizeTitleCase(req.body.batch_name),
+        crop_type: sanitizeTitleCase(req.body.crop_type),
+        variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
@@ -86,9 +87,9 @@ const SeedController = {
       const { id } = req.params;
       const seedData = {
         ...req.body,
-        batch_name: sanitizeString(req.body.batch_name),
-        crop_type: sanitizeString(req.body.crop_type),
-        variety: sanitizeString(req.body.variety),
+        batch_name: sanitizeTitleCase(req.body.batch_name),
+        crop_type: sanitizeTitleCase(req.body.crop_type),
+        variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:

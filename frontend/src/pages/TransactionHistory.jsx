@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
+import { toTitleCase } from "../utils/textFormat";
 
 const TransactionHistory = () => {
   const { user } = useAuth();
@@ -270,7 +271,7 @@ const TransactionHistory = () => {
                     <option value="">All Crops</option>
                     {cropTypes.map((crop) => (
                       <option key={crop} value={crop}>
-                        {crop}
+                        {toTitleCase(crop)}
                       </option>
                     ))}
                   </select>
@@ -291,7 +292,7 @@ const TransactionHistory = () => {
                     <option value="">All Varieties</option>
                     {visibleVarieties.map((variety) => (
                       <option key={variety} value={variety}>
-                        {variety}
+                        {toTitleCase(variety)}
                       </option>
                     ))}
                   </select>
@@ -473,7 +474,7 @@ const TransactionHistory = () => {
                 )}
                 {filters.crop_type && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                    Crop: {filters.crop_type}
+                    Crop: {toTitleCase(filters.crop_type)}
                     <button
                       onClick={() =>
                         setFilters((prev) => ({
@@ -490,7 +491,7 @@ const TransactionHistory = () => {
                 )}
                 {filters.variety && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                    Variety: {filters.variety}
+                    Variety: {toTitleCase(filters.variety)}
                     <button
                       onClick={() =>
                         setFilters((prev) => ({ ...prev, variety: "" }))
@@ -568,20 +569,27 @@ const TransactionHistory = () => {
                                 className="hover:bg-slate-50"
                               >
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.batch_name ||
-                                    transaction.seed_id}
+                                  {transaction.batch_name
+                                    ? toTitleCase(transaction.batch_name)
+                                    : transaction.seed_id}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
                                   {transaction.quantity}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.recipient || "-"}
+                                  {transaction.recipient
+                                    ? toTitleCase(transaction.recipient)
+                                    : "-"}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.purpose || "-"}
+                                  {transaction.purpose
+                                    ? toTitleCase(transaction.purpose)
+                                    : "-"}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.affiliation || "-"}
+                                  {transaction.affiliation
+                                    ? toTitleCase(transaction.affiliation)
+                                    : "-"}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
                                   {transaction.contact || "-"}
@@ -706,14 +714,17 @@ const TransactionHistory = () => {
                                 className="hover:bg-slate-50"
                               >
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.batch_name ||
-                                    transaction.seed_id}
+                                  {transaction.batch_name
+                                    ? toTitleCase(transaction.batch_name)
+                                    : transaction.seed_id}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
                                   {transaction.quantity}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
-                                  {transaction.purpose || "-"}
+                                  {transaction.purpose
+                                    ? toTitleCase(transaction.purpose)
+                                    : "-"}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-700">
                                   {transaction.remarks || "-"}
