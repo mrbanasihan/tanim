@@ -34,6 +34,13 @@ const recordAuditLog = async ({
   );
 };
 
+const hasTable = async (tableName) => {
+  const result = await db.query(`SELECT to_regclass($1) AS table_name`, [
+    tableName,
+  ]);
+  return Boolean(result.rows[0]?.table_name);
+};
+
 const listAuditLogs = async ({
   search = "",
   actionType = "",
@@ -85,15 +92,38 @@ const listAuditLogs = async ({
 };
 
 const listUsers = async () => {
-  const result = await db.query(
-    `
-      SELECT user_id, email, first_name, last_name, role, is_active, created_at
-      FROM "user"
-      ORDER BY created_at DESC
-    `,
-  );
+  if (await hasTable('public."user"')) {
+    const result = await db.query(
+      `
+        SELECT user_id, email, first_name, last_name, role, is_active, created_at
+        FROM "user"
+        ORDER BY created_at DESC
+      `,
+    );
 
-  return result.rows;
+    return result.rows;
+  }
+
+  if (await hasTable("public.users")) {
+    const result = await db.query(
+      `
+        SELECT
+          user_id,
+          email,
+          COALESCE(first_name, split_part(email, '@', 1)) AS first_name,
+          COALESCE(last_name, '') AS last_name,
+          COALESCE(role, 'guest') AS role,
+          COALESCE(is_active, true) AS is_active,
+          created_at
+        FROM users
+        ORDER BY created_at DESC
+      `,
+    );
+
+    return result.rows;
+  }
+
+  return [];
 };
 
 const createUser = async ({
@@ -203,6 +233,10 @@ const updateUserRole = async (userId, role, actor = "admin-system") => {
 };
 
 const listProjects = async () => {
+  if (!(await hasTable("public.project"))) {
+    return [];
+  }
+
   const result = await db.query(
     `
       SELECT project_id, project_name, project_code, description, start_date, end_date, created_by, created_at
@@ -298,15 +332,40 @@ const deleteProject = async (projectId, actor = "admin-system") => {
 };
 
 const listRooms = async () => {
-  const result = await db.query(
-    `
-      SELECT room_id, room_name, building_location, optimal_temp, temp_start, temp_end, recorded_at
-      FROM room
-      ORDER BY recorded_at DESC
-    `,
-  );
+  if (await hasTable("public.room")) {
+    const result = await db.query(
+      `
+        SELECT room_id, room_name, building_location, optimal_temp, temp_start, temp_end, recorded_at
+        FROM room
+        ORDER BY recorded_at DESC
+      `,
+    );
 
-  return result.rows;
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  }
+
+  if (await hasTable("public.rooms")) {
+    const legacyResult = await db.query(
+      `
+        SELECT
+          room_id,
+          name AS room_name,
+          description AS building_location,
+          NULL::numeric AS optimal_temp,
+          temperature_min AS temp_start,
+          temperature_max AS temp_end,
+          created_at AS recorded_at
+        FROM rooms
+        ORDER BY created_at DESC
+      `,
+    );
+
+    return legacyResult.rows;
+  }
+
+  return [];
 };
 
 const createRoom = async (data, actor = "admin-system") => {

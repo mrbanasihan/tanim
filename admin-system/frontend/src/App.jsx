@@ -18,29 +18,31 @@ const navItems = [
 const App = () => {
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">A</span>
-          <div>
-            <h1>TANIM Admin</h1>
-            <p>Control plane</p>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-mark">T</span>
+            <div>
+              <h1>TANIM Admin</h1>
+              <p>Control plane</p>
+            </div>
           </div>
+          <nav className="nav">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <nav className="nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      </header>
 
       <main className="content">
         <Routes>

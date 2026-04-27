@@ -13,14 +13,24 @@ const emptyUser = {
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyUser);
+  const [error, setError] = useState("");
 
   const loadUsers = async () => {
-    const response = await api.get("/admin/users");
-    setUsers(response.data.data || []);
+    try {
+      const response = await api.get("/admin/users");
+      setUsers(response.data.data || []);
+      setError("");
+    } catch (err) {
+      setUsers([]);
+      setError(
+        err?.response?.data?.error ||
+          "Unable to load users. Check admin backend URL and database configuration.",
+      );
+    }
   };
 
   useEffect(() => {
-    loadUsers().catch(() => setUsers([]));
+    loadUsers();
   }, []);
 
   const handleSubmit = async (event) => {
@@ -46,6 +56,7 @@ const UsersPage = () => {
         <h2>User Management</h2>
         <p>Add, update, delete, and reassign TANIM users.</p>
       </div>
+      {error ? <div className="error-banner">{error}</div> : null}
 
       <form
         className="form-stack"

@@ -12,14 +12,24 @@ const emptyProject = {
 const ProjectsPage = () => {
   const [projects, setProjects] = useState([]);
   const [form, setForm] = useState(emptyProject);
+  const [error, setError] = useState("");
 
   const loadProjects = async () => {
-    const response = await api.get("/admin/projects");
-    setProjects(response.data.data || []);
+    try {
+      const response = await api.get("/admin/projects");
+      setProjects(response.data.data || []);
+      setError("");
+    } catch (err) {
+      setProjects([]);
+      setError(
+        err?.response?.data?.error ||
+          "Unable to load projects. Check admin backend URL and database configuration.",
+      );
+    }
   };
 
   useEffect(() => {
-    loadProjects().catch(() => setProjects([]));
+    loadProjects();
   }, []);
 
   const handleSubmit = async (event) => {
@@ -42,6 +52,7 @@ const ProjectsPage = () => {
         <h2>Project Management</h2>
         <p>Create and maintain TANIM research projects.</p>
       </div>
+      {error ? <div className="error-banner">{error}</div> : null}
 
       <form
         className="form-stack"

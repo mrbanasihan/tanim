@@ -5,17 +5,27 @@ const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [actionType, setActionType] = useState("");
+  const [error, setError] = useState("");
 
   const loadLogs = async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (actionType) params.set("actionType", actionType);
-    const response = await api.get(`/admin/audit-logs?${params.toString()}`);
-    setLogs(response.data.data || []);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (actionType) params.set("actionType", actionType);
+      const response = await api.get(`/admin/audit-logs?${params.toString()}`);
+      setLogs(response.data.data || []);
+      setError("");
+    } catch (err) {
+      setLogs([]);
+      setError(
+        err?.response?.data?.error ||
+          "Unable to load audit logs. Check admin backend URL and database configuration.",
+      );
+    }
   };
 
   useEffect(() => {
-    loadLogs().catch(() => setLogs([]));
+    loadLogs();
   }, []);
 
   return (
@@ -24,6 +34,7 @@ const AuditLogs = () => {
         <h2>Audit Logs</h2>
         <p>View create, update, and delete activity captured in TANIM.</p>
       </div>
+      {error ? <div className="error-banner">{error}</div> : null}
       <div className="toolbar">
         <input
           className="input"
@@ -43,10 +54,7 @@ const AuditLogs = () => {
           <option value="LOGIN">LOGIN</option>
           <option value="LOGOUT">LOGOUT</option>
         </select>
-        <button
-          className="button"
-          onClick={() => loadLogs().catch(() => setLogs([]))}
-        >
+        <button className="button" onClick={loadLogs}>
           Refresh
         </button>
       </div>

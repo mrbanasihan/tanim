@@ -12,14 +12,24 @@ const emptyRoom = {
 const RoomsPage = () => {
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState(emptyRoom);
+  const [error, setError] = useState("");
 
   const loadRooms = async () => {
-    const response = await api.get("/admin/rooms");
-    setRooms(response.data.data || []);
+    try {
+      const response = await api.get("/admin/rooms");
+      setRooms(response.data.data || []);
+      setError("");
+    } catch (err) {
+      setRooms([]);
+      setError(
+        err?.response?.data?.error ||
+          "Unable to load rooms. Check admin backend URL and database configuration.",
+      );
+    }
   };
 
   useEffect(() => {
-    loadRooms().catch(() => setRooms([]));
+    loadRooms();
   }, []);
 
   const handleSubmit = async (event) => {
@@ -43,6 +53,7 @@ const RoomsPage = () => {
           later.
         </p>
       </div>
+      {error ? <div className="error-banner">{error}</div> : null}
 
       <form
         className="form-stack"
