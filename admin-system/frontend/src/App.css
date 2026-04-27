@@ -285,6 +285,82 @@
   gap: 14px;
 }
 
+.audit-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.audit-table table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.audit-table table tbody tr:hover {
+  background-color: #f0fdf4;
+}
+
+.audit-table table tbody tr.expanded {
+  background-color: #f8fafc;
+}
+
+.details-row td {
+  padding: 0;
+  border: none;
+  background: #f8fafc;
+}
+
+.audit-details {
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.audit-details h4 {
+  margin: 0 0 12px 0;
+  color: #166534;
+  font-size: 0.9rem;
+}
+
+.payload-viewer {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.payload-viewer pre {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #0f172a;
+  font-family: "Monaco", "Menlo", monospace;
+  line-height: 1.5;
+}
+
+.audit-time {
+  color: #64748b;
+  font-size: 0.84rem;
+  margin-bottom: 8px;
+}
+
+.audit-actor-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.audit-actor-display {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.audit-summary {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
 .audit-entry {
   border: 1px solid #e2e8f0;
   border-radius: 16px;

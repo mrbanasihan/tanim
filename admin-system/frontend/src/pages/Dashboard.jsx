@@ -38,10 +38,6 @@ const Dashboard = () => {
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 20 }} className="notice">
-        This scaffold is wired to the shared Supabase database and Aiven Kafka
-        service.
-      </div>
     </div>
   );
 };

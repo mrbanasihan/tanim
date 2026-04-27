@@ -51,16 +51,86 @@ const toBoolean = (value) => {
   return false;
 };
 
+const normalizeGroups = (groups) => {
+  const input = Array.isArray(groups) ? groups : [groups];
+  return [...new Set(input.filter(Boolean))];
+};
+
+const assignProjectCropGroups = async (projectId, groups) => {
+  if (!Array.isArray(groups) && !groups) {
+    return;
+  }
+
+  const normalizedGroups = normalizeGroups(groups);
+
+  await db.query(`DELETE FROM project_crop_group WHERE project_id = $1`, [
+    projectId,
+  ]);
+
+  if (normalizedGroups.length === 0) {
+    return;
+  }
+
+  await db.query(
+    `
+      INSERT INTO project_crop_group (project_id, crop_group)
+      SELECT $1::uuid, UNNEST($2::text[])
+      ON CONFLICT (project_id, crop_group) DO NOTHING
+    `,
+    [projectId, normalizedGroups],
+  );
+};
+
+const assignUserCropGroups = async (userId, groups) => {
+  if (!Array.isArray(groups) && !groups) {
+    return;
+  }
+
+  const normalizedGroups = normalizeGroups(groups);
+
+  await db.query(`DELETE FROM user_crop_group WHERE user_id = $1`, [userId]);
+
+  if (normalizedGroups.length === 0) {
+    return;
+  }
+
+  await db.query(
+    `
+      INSERT INTO user_crop_group (user_id, crop_group)
+      SELECT $1::uuid, UNNEST($2::text[])
+      ON CONFLICT (user_id, crop_group) DO NOTHING
+    `,
+    [userId, normalizedGroups],
+  );
+};
+
 const isSoftDeletePayload = (actionType, payload) => {
-  if (actionType !== "UPDATE" || !payload || typeof payload !== "object") {
+  if (!payload || typeof payload !== "object") {
     return false;
   }
 
-  const changes = payload.changes || payload.updated_fields || {};
-  return (
+  // Explicit soft-delete markers
+  if (
     payload.operation === "soft_delete" ||
     payload.change_type === "soft_delete" ||
-    payload.deleted === true ||
+    payload.deleted === true
+  ) {
+    return true;
+  }
+
+  // Only UPDATE actions can be implicit soft-deletes (deactivations)
+  if (actionType !== "UPDATE") {
+    return false;
+  }
+
+  // For UPDATEs: only if ONLY is_active is being changed and it's being set to false
+  const changes = payload.changes || payload.updated_fields || {};
+  const changedKeys = Object.keys(changes);
+
+  // Must change only is_active and it must be set to false
+  return (
+    changedKeys.length === 1 &&
+    changedKeys[0] === "is_active" &&
     toBoolean(changes.is_active) === false
   );
 };
@@ -130,8 +200,9 @@ const listAuditLogs = async ({
 
   if (actionType) {
     if (actionType === "SOFT_DELETE") {
+      // Match explicit soft-delete markers OR implicit deactivations
       conditions.push(
-        `(action_type = 'UPDATE' AND (payload->>'operation' = 'soft_delete' OR payload->>'change_type' = 'soft_delete' OR payload->'changes'->>'is_active' = 'false'))`,
+        `(payload->>'operation' = 'soft_delete' OR payload->>'change_type' = 'soft_delete' OR payload->>'deleted' = 'true')`,
       );
     } else {
       values.push(actionType);
@@ -202,12 +273,30 @@ const listAuditLogs = async ({
 };
 
 const listUsers = async () => {
+  // Ensure user_crop_group table exists
+  await db
+    .query(
+      `
+    CREATE TABLE IF NOT EXISTS user_crop_group (
+      user_id UUID REFERENCES "user"(user_id) ON DELETE CASCADE,
+      crop_group VARCHAR(100) NOT NULL,
+      assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, crop_group)
+    )
+  `,
+    )
+    .catch(() => {});
+
   if (await hasTable('public."user"')) {
     const result = await db.query(
       `
-        SELECT user_id, email, first_name, last_name, role, is_active, created_at
-        FROM "user"
-        ORDER BY created_at DESC
+        SELECT
+          u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
+          COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        FROM "user" u
+        LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
+        GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
+        ORDER BY u.created_at DESC
       `,
     );
 
@@ -218,15 +307,18 @@ const listUsers = async () => {
     const result = await db.query(
       `
         SELECT
-          user_id,
-          email,
-          COALESCE(first_name, split_part(email, '@', 1)) AS first_name,
-          COALESCE(last_name, '') AS last_name,
-          COALESCE(role, 'guest') AS role,
-          COALESCE(is_active, true) AS is_active,
-          created_at
-        FROM users
-        ORDER BY created_at DESC
+          u.user_id,
+          u.email,
+          COALESCE(u.first_name, split_part(u.email, '@', 1)) AS first_name,
+          COALESCE(u.last_name, '') AS last_name,
+          COALESCE(u.role, 'guest') AS role,
+          COALESCE(u.is_active, true) AS is_active,
+          u.created_at,
+          COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        FROM users u
+        LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
+        GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
+        ORDER BY u.created_at DESC
       `,
     );
 
@@ -243,6 +335,7 @@ const createUser = async ({
   last_name,
   role = "guest",
   is_active = true,
+  crop_groups = [],
   actor = "admin-system",
 }) => {
   const passwordHash = await bcrypt.hash(password, 10);
@@ -255,48 +348,120 @@ const createUser = async ({
     [email, passwordHash, first_name, last_name, role, is_active],
   );
 
+  const userId = result.rows[0].user_id;
+
+  // Assign crop groups if provided and user is not admin
+  if (
+    role !== "admin" &&
+    Array.isArray(crop_groups) &&
+    crop_groups.length > 0
+  ) {
+    await assignUserCropGroups(userId, crop_groups);
+  }
+
   await recordAuditLog({
     actionType: "CREATE",
     actor,
-    payload: { entity: "user", user_id: result.rows[0].user_id, email },
+    payload: {
+      entity: "user",
+      user_id: userId,
+      email,
+      role,
+      crop_groups: crop_groups || [],
+    },
   });
 
-  return result.rows[0];
+  // Return user with crop_groups
+  const userWithGroups = await db.query(
+    `
+      SELECT
+        u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
+        COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+      FROM "user" u
+      LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
+      WHERE u.user_id = $1
+      GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
+    `,
+    [userId],
+  );
+
+  return userWithGroups.rows[0];
 };
 
 const updateUser = async (userId, data, actor = "admin-system") => {
-  const { actor: ignoredActor, ...updateData } = data || {};
+  const { actor: ignoredActor, crop_groups, ...updateData } = data || {};
   const nextData = { ...updateData };
   if (nextData.password) {
     nextData.password = await bcrypt.hash(nextData.password, 10);
   }
 
   const { clause, values } = buildUpdateClause(nextData, 2);
-  if (!clause) {
-    throw new Error("No fields provided for update");
+
+  let updatedUser = null;
+  if (clause) {
+    const result = await db.query(
+      `
+        UPDATE "user"
+        SET ${clause}
+        WHERE user_id = $1
+        RETURNING user_id, email, first_name, last_name, role, is_active, created_at
+      `,
+      [userId, ...values],
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error("User not found");
+    }
+
+    updatedUser = result.rows[0];
+  } else {
+    // Verify user exists even if no fields to update
+    const checkResult = await db.query(
+      `SELECT user_id, role FROM "user" WHERE user_id = $1`,
+      [userId],
+    );
+    if (checkResult.rowCount === 0) {
+      throw new Error("User not found");
+    }
+    updatedUser = checkResult.rows[0];
   }
 
-  const result = await db.query(
-    `
-      UPDATE "user"
-      SET ${clause}
-      WHERE user_id = $1
-      RETURNING user_id, email, first_name, last_name, role, is_active, created_at
-    `,
-    [userId, ...values],
-  );
+  // Handle crop groups if provided and user is not admin
+  if (Array.isArray(crop_groups)) {
+    if (updatedUser.role !== "admin") {
+      await assignUserCropGroups(userId, crop_groups);
+    }
+  }
 
-  if (result.rowCount === 0) {
-    throw new Error("User not found");
+  const auditPayload = { entity: "user", user_id: userId };
+  if (clause) {
+    auditPayload.changes = updateData;
+  }
+  if (Array.isArray(crop_groups)) {
+    auditPayload.crop_groups = crop_groups;
   }
 
   await recordAuditLog({
     actionType: "UPDATE",
     actor,
-    payload: { entity: "user", user_id: userId, changes: updateData },
+    payload: auditPayload,
   });
 
-  return result.rows[0];
+  // Return user with crop_groups
+  const userWithGroups = await db.query(
+    `
+      SELECT
+        u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
+        COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+      FROM "user" u
+      LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
+      WHERE u.user_id = $1
+      GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
+    `,
+    [userId],
+  );
+
+  return userWithGroups.rows[0];
 };
 
 const deleteUser = async (userId, actor = "admin-system") => {
@@ -358,11 +523,29 @@ const listProjects = async () => {
     return [];
   }
 
+  // Ensure project_crop_group table exists
+  await db
+    .query(
+      `
+    CREATE TABLE IF NOT EXISTS project_crop_group (
+      project_id UUID REFERENCES project(project_id) ON DELETE CASCADE,
+      crop_group VARCHAR(100) NOT NULL,
+      assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (project_id, crop_group)
+    )
+  `,
+    )
+    .catch(() => {}); // Ignore if table already exists
+
   const result = await db.query(
     `
-      SELECT project_id, project_name, project_code, description, start_date, end_date, created_by, created_at
-      FROM project
-      ORDER BY created_at DESC
+      SELECT
+        p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
+        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+      FROM project p
+      LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
+      GROUP BY p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at
+      ORDER BY p.created_at DESC
     `,
   );
 
@@ -386,45 +569,103 @@ const createProject = async (data, actor = "admin-system") => {
     ],
   );
 
+  const projectId = result.rows[0].project_id;
+
+  // Assign crop groups if provided
+  if (data.crop_groups && data.crop_groups.length > 0) {
+    await assignProjectCropGroups(projectId, data.crop_groups);
+  }
+
   await recordAuditLog({
     actionType: "CREATE",
     actor,
     payload: {
       entity: "project",
-      project_id: result.rows[0].project_id,
+      project_id: projectId,
       project_name: data.project_name,
+      crop_groups: data.crop_groups || [],
     },
   });
 
-  return result.rows[0];
+  // Return project with crop_groups
+  const updatedResult = await db.query(
+    `
+      SELECT
+        p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
+        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+      FROM project p
+      LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
+      WHERE p.project_id = $1
+      GROUP BY p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at
+    `,
+    [projectId],
+  );
+
+  return updatedResult.rows[0];
 };
 
 const updateProject = async (projectId, data, actor = "admin-system") => {
-  const { actor: ignoredActor, ...updateData } = data || {};
+  const { actor: ignoredActor, crop_groups, ...updateData } = data || {};
   const { clause, values } = buildUpdateClause(updateData, 2);
-  if (!clause) {
-    throw new Error("No fields provided for update");
+
+  // Update project fields if any provided
+  if (clause) {
+    const result = await db.query(
+      `
+        UPDATE project
+        SET ${clause}
+        WHERE project_id = $1
+        RETURNING *
+      `,
+      [projectId, ...values],
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error("Project not found");
+    }
+  } else {
+    // Verify project exists even if no fields to update
+    const checkResult = await db.query(
+      `SELECT project_id FROM project WHERE project_id = $1`,
+      [projectId],
+    );
+    if (checkResult.rowCount === 0) {
+      throw new Error("Project not found");
+    }
   }
 
-  const result = await db.query(
-    `
-      UPDATE project
-      SET ${clause}
-      WHERE project_id = $1
-      RETURNING *
-    `,
-    [projectId, ...values],
-  );
+  // Handle crop groups if provided
+  if (Array.isArray(crop_groups)) {
+    await assignProjectCropGroups(projectId, crop_groups);
+  }
 
-  if (result.rowCount === 0) {
-    throw new Error("Project not found");
+  const auditPayload = { entity: "project", project_id: projectId };
+  if (clause) {
+    auditPayload.changes = updateData;
+  }
+  if (Array.isArray(crop_groups)) {
+    auditPayload.crop_groups = crop_groups;
   }
 
   await recordAuditLog({
     actionType: "UPDATE",
     actor,
-    payload: { entity: "project", project_id: projectId, changes: updateData },
+    payload: auditPayload,
   });
+
+  // Return updated project with crop_groups
+  const result = await db.query(
+    `
+      SELECT
+        p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
+        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+      FROM project p
+      LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
+      WHERE p.project_id = $1
+      GROUP BY p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at
+    `,
+    [projectId],
+  );
 
   return result.rows[0];
 };

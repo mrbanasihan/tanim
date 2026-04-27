@@ -13,6 +13,7 @@ const AuditLogs = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
 
   const loadLogs = async (nextPage = page) => {
     try {
@@ -93,37 +94,12 @@ const AuditLogs = () => {
     }
 
     if (changes.length > 0) {
-      return `${entity} changes: ${changes.slice(0, 3).join(", ")}${
-        changes.length > 3 ? "..." : ""
+      return `${entity} changes: ${changes.slice(0, 2).join(", ")}${
+        changes.length > 2 ? ", ..." : ""
       }`;
     }
 
     return `${entity} event details`;
-  };
-
-  const renderPayloadField = ([key, value]) => {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      return (
-        <div className="payload-card" key={key}>
-          <div className="payload-card-title">{key}</div>
-          <div className="payload-card-body">
-            {Object.entries(value).map(([nestedKey, nestedValue]) => (
-              <div className="payload-field" key={`${key}-${nestedKey}`}>
-                <span>{nestedKey}</span>
-                <strong>{String(nestedValue)}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="payload-field" key={key}>
-        <span>{key}</span>
-        <strong>{String(value)}</strong>
-      </div>
-    );
   };
 
   const onSearchSubmit = (event) => {
@@ -136,6 +112,11 @@ const AuditLogs = () => {
     const totalPages = meta.totalPages || 1;
     const boundedPage = Math.max(1, Math.min(totalPages, nextPage));
     setPage(boundedPage);
+  };
+
+  const formatPayload = (payload) => {
+    if (!payload) return {};
+    return typeof payload === "object" ? payload : JSON.parse(payload || "{}");
   };
 
   return (
@@ -208,54 +189,80 @@ const AuditLogs = () => {
         </div>
       </div>
 
-      <div className="audit-list">
+      <div className="audit-table">
         {logs.length === 0 ? (
           <div className="notice">No audit logs found.</div>
         ) : (
-          logs.map((log) => (
-            <article className="audit-entry" key={log.audit_id}>
-              <div className="audit-entry-top">
-                <div>
-                  <div className="audit-time">
-                    {new Date(log.logged_at).toLocaleString()}
-                  </div>
-                  <div className="audit-title-row">
-                    <span
-                      className={getActionClassName(log.action_display_type)}
-                    >
-                      {log.action_display_type}
-                    </span>
-                    <span className="audit-entity">
-                      {log.payload?.entity || "event"}
-                    </span>
-                  </div>
-                </div>
-                <div className="audit-actor">
-                  <strong>
-                    {log.actor_first_name} {log.actor_last_name}
-                  </strong>
-                  <span>{log.actor_display_name}</span>
-                </div>
-              </div>
-
-              <details className="payload-details">
-                <summary>
-                  <span>{summarizePayload(log.payload)}</span>
-                  <span className="details-hint">Expand payload</span>
-                </summary>
-                <div className="payload-grid">
-                  {log.payload && typeof log.payload === "object" ? (
-                    Object.entries(log.payload).map(renderPayloadField)
-                  ) : (
-                    <div className="payload-field">
-                      <span>payload</span>
-                      <strong>{String(log.payload ?? "-")}</strong>
-                    </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Entity</th>
+                <th>Actor</th>
+                <th>Summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <React.Fragment key={log.audit_id}>
+                  <tr
+                    onClick={() =>
+                      setExpandedId(
+                        expandedId === log.audit_id ? null : log.audit_id,
+                      )
+                    }
+                    style={{ cursor: "pointer" }}
+                    className={expandedId === log.audit_id ? "expanded" : ""}
+                  >
+                    <td>
+                      <span className="audit-time">
+                        {new Date(log.logged_at).toLocaleString()}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={getActionClassName(log.action_display_type)}
+                      >
+                        {log.action_display_type}
+                      </span>
+                    </td>
+                    <td>{log.payload?.entity || "event"}</td>
+                    <td>
+                      <span className="audit-actor-name">
+                        {log.actor_first_name} {log.actor_last_name}
+                      </span>
+                      <br />
+                      <span className="audit-actor-display">
+                        {log.actor_display_name}
+                      </span>
+                    </td>
+                    <td className="audit-summary">
+                      {summarizePayload(log.payload)}
+                    </td>
+                  </tr>
+                  {expandedId === log.audit_id && (
+                    <tr className="details-row">
+                      <td colSpan="5">
+                        <div className="audit-details">
+                          <h4>Full Payload</h4>
+                          <div className="payload-viewer">
+                            <pre>
+                              {JSON.stringify(
+                                formatPayload(log.payload),
+                                null,
+                                2,
+                              )}
+                            </pre>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                </div>
-              </details>
-            </article>
-          ))
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

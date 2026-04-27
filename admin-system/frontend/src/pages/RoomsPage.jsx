@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
@@ -14,6 +14,11 @@ const RoomsPage = () => {
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState(emptyRoom);
   const [error, setError] = useState("");
+
+  // Filter and search state
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const loadRooms = async () => {
     try {
@@ -35,16 +40,58 @@ const RoomsPage = () => {
     loadRooms();
   }, []);
 
+  const filteredRooms = useMemo(() => {
+    let result = [...rooms];
+
+    // Search filter
+    if (searchText) {
+      const query = searchText.toLowerCase();
+      result = result.filter(
+        (room) =>
+          room.room_name.toLowerCase().includes(query) ||
+          (room.building_location &&
+            room.building_location.toLowerCase().includes(query)),
+      );
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      let aVal = a[sortBy];
+      let bVal = b[sortBy];
+
+      if (sortBy === "name") {
+        aVal = a.room_name;
+        bVal = b.room_name;
+      }
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [rooms, searchText, sortBy, sortOrder]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await api.post("/admin/rooms", form);
-    setForm(emptyRoom);
-    await loadRooms();
+    try {
+      await api.post("/admin/rooms", form);
+      setForm(emptyRoom);
+      await loadRooms();
+    } catch (err) {
+      setError(getErrorMessage(err, "Unable to create room."));
+    }
   };
 
   const handleDelete = async (roomId) => {
-    await api.delete(`/admin/rooms/${roomId}`, { data: { actor: "admin-ui" } });
-    await loadRooms();
+    try {
+      await api.delete(`/admin/rooms/${roomId}`, {
+        data: { actor: "admin-ui" },
+      });
+      await loadRooms();
+    } catch (err) {
+      setError(getErrorMessage(err, "Unable to delete room."));
+    }
   };
 
   return (
@@ -77,6 +124,7 @@ const RoomsPage = () => {
                 onChange={(e) =>
                   setForm({ ...form, room_name: e.target.value })
                 }
+                required
               />
             </div>
             <div>
@@ -143,6 +191,64 @@ const RoomsPage = () => {
           </div>
         </div>
 
+        {/* Filters and search */}
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "12px",
+            backgroundColor: "#f8fafc",
+            borderRadius: "8px",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "12px",
+              marginBottom: "12px",
+            }}
+          >
+            <div>
+              <label className="label" style={{ fontSize: "0.8rem" }}>
+                Search
+              </label>
+              <input
+                className="input"
+                type="text"
+                placeholder="Room name or location"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label" style={{ fontSize: "0.8rem" }}>
+                Sort by
+              </label>
+              <select
+                className="select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="created_at">Created</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
+            <div>
+              <label className="label" style={{ fontSize: "0.8rem" }}>
+                Order
+              </label>
+              <select
+                className="select"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="desc">Newest</option>
+                <option value="asc">Oldest</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="table-wrap">
           <table>
             <thead>
@@ -154,14 +260,14 @@ const RoomsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {rooms.length === 0 ? (
+              {filteredRooms.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="notice">
                     No rooms found.
                   </td>
                 </tr>
               ) : (
-                rooms.map((room) => (
+                filteredRooms.map((room) => (
                   <tr key={room.room_id}>
                     <td>{room.room_name}</td>
                     <td>{room.building_location || "-"}</td>
