@@ -10,6 +10,14 @@ const adminRoutes = require("./routes/adminRoutes");
 const app = express();
 
 const normalizeOrigin = (origin) => origin.trim().replace(/\/$/, "");
+
+const originHost = (origin) => {
+  try {
+    return new URL(origin).hostname;
+  } catch {
+    return origin.replace(/^https?:\/\//, "").split("/")[0];
+  }
+};
 const configuredOrigins =
   process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "";
 const allowVercelPreviews = ["true", "1", "yes", "on"].includes(
@@ -25,6 +33,13 @@ const allowedOrigins = configuredOrigins
 const isAllowedOrigin = (origin) => {
   if (allowedOrigins.length === 0) return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (
+    allowedOrigins.some(
+      (allowedOrigin) => originHost(allowedOrigin) === originHost(origin),
+    )
+  ) {
+    return true;
+  }
   if (allowVercelPreviews && origin.endsWith(".vercel.app")) return true;
   return false;
 };

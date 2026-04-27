@@ -38,7 +38,8 @@ const getDefaultBaseUrl = () => {
   return "https://admin-1-t84v.onrender.com/api";
 };
 
-const configuredBaseUrl = import.meta.env.VITE_ADMIN_API_BASE_URL;
+const configuredBaseUrl =
+  import.meta.env.VITE_ADMIN_API_BASE_URL || import.meta.env.VITE_API_BASE_URL;
 const resolvedBaseUrl =
   configuredBaseUrl && !isObviousBadAdminApiUrl(configuredBaseUrl)
     ? configuredBaseUrl
