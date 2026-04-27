@@ -40,12 +40,26 @@ const getDefaultBaseUrl = () => {
 
 const configuredBaseUrl =
   import.meta.env.VITE_ADMIN_API_BASE_URL || import.meta.env.VITE_API_BASE_URL;
+const isRelativeApiBaseUrl = (value) => {
+  if (!value) {
+    return false;
+  }
+
+  const trimmed = String(value).trim();
+  return trimmed === "/api" || trimmed === "api" || trimmed.startsWith("/");
+};
 const resolvedBaseUrl =
-  configuredBaseUrl && !isObviousBadAdminApiUrl(configuredBaseUrl)
+  configuredBaseUrl &&
+  !isRelativeApiBaseUrl(configuredBaseUrl) &&
+  !isObviousBadAdminApiUrl(configuredBaseUrl)
     ? configuredBaseUrl
     : getDefaultBaseUrl();
 
-if (configuredBaseUrl && isObviousBadAdminApiUrl(configuredBaseUrl)) {
+if (
+  configuredBaseUrl &&
+  (isRelativeApiBaseUrl(configuredBaseUrl) ||
+    isObviousBadAdminApiUrl(configuredBaseUrl))
+) {
   console.warn(
     `Ignoring invalid admin API base URL: ${configuredBaseUrl}. Falling back to ${resolvedBaseUrl}`,
   );
