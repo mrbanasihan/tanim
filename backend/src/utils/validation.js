@@ -315,6 +315,9 @@ const sanitizeString = (str) => {
 };
 
 const sanitizeTitleCase = (str) => {
+  // Return empty string for undefined, null, or non-string values
+  if (!str || typeof str !== "string") return "";
+
   const sanitized = sanitizeString(str);
   if (!sanitized) return "";
 

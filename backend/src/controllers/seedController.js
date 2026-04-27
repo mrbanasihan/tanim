@@ -53,11 +53,14 @@ const SeedController = {
   },
 
   // POST /api/seeds
+  // POST /api/seeds
   async create(req, res) {
     try {
+      console.log("Request body:", JSON.stringify(req.body, null, 2)); // ← ADD THIS
+
       const seedData = {
         ...req.body,
-        batch_name: sanitizeTitleCase(req.body.batch_name),
+        // batch_name is auto-generated - DO NOT include
         crop_type: sanitizeTitleCase(req.body.crop_type).toLowerCase(),
         variety: sanitizeTitleCase(req.body.variety).toLowerCase(),
         classification: sanitizeString(req.body.classification).toLowerCase(),
@@ -72,20 +75,32 @@ const SeedController = {
         remarks: sanitizeString(req.body.remarks),
       };
 
+      console.log("Processed seedData:", JSON.stringify(seedData, null, 2)); // ← ADD THIS
+
       const validation = validateSeedLot(seedData);
       if (!validation.isValid) {
+        console.log("Validation errors:", validation.errors); // ← ADD THIS
         return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
-      // Add user ID for backend tracking
       seedData.created_by = req.user.userId;
+      console.log("Creating seed with user:", seedData.created_by); // ← ADD THIS
 
       const seed = await SeedModel.create(seedData, req.user.userId);
 
+      console.log("Seed created successfully:", seed.seed_id); // ← ADD THIS
       res.status(201).json(seed);
     } catch (error) {
       console.error("Create seed error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error stack:", error.stack); // ← ADD THIS
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+      }); // ← ADD THIS
+      res
+        .status(500)
+        .json({ error: "Internal server error", details: error.message });
     }
   },
 
