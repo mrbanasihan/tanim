@@ -26,6 +26,10 @@ INSERT INTO project (
     (SELECT user_id FROM "user" WHERE email = 'admin@tanim.com' LIMIT 1)
 );
 
+INSERT INTO project_crop_group (project_id, crop_group)
+VALUES ('c2eeaa77-7e2b-5af0-add9-8dd1ce502c33', 'legumes')
+ON CONFLICT (project_id, crop_group) DO NOTHING;
+
 INSERT INTO room (
     room_id,
     room_name,

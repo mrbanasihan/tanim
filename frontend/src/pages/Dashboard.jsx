@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { filterByCropGroup } from "../utils/accessControl";
+import { getSelectedCropGroup } from "../constants/cropCatalog";
 
 function Dashboard() {
   const { user } = useAuth();
@@ -69,9 +70,17 @@ function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        const selectedGroup = getSelectedCropGroup(
+          user?.role,
+          user?.crop_groups,
+        );
         const [seedsRes, projectsRes, transactionsRes] = await Promise.all([
           api.get("/seeds"),
-          api.get("/projects"),
+          api.get(
+            selectedGroup
+              ? `/projects?crop_group=${selectedGroup}`
+              : "/projects",
+          ),
           api.get("/transactions?limit=10"),
         ]);
 

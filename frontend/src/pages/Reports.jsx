@@ -14,6 +14,7 @@ import { Pie, Bar, Doughnut } from "react-chartjs-2";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { canAccessFeature, filterByCropGroup } from "../utils/accessControl";
+import { getSelectedCropGroup } from "../constants/cropCatalog";
 
 ChartJS.register(
   ArcElement,
@@ -100,10 +101,13 @@ const Reports = () => {
     try {
       setError(null);
       setLoading(true);
+      const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
       const [seedsRes, transactionsRes, projectsRes] = await Promise.all([
         api.get("/seeds"),
         api.get("/transactions"),
-        api.get("/projects"),
+        api.get(
+          selectedGroup ? `/projects?crop_group=${selectedGroup}` : "/projects",
+        ),
       ]);
 
       const filteredSeeds = filterByCropGroup(

@@ -67,7 +67,7 @@ const AuthController = {
       if (!isValidEmail(email)) {
         return res
           .status(400)
-          .json({ error: "Email must use the @example.com domain" });
+          .json({ error: "Email must be in the format @<domain>.com" });
       }
 
       // Find user by email in the database

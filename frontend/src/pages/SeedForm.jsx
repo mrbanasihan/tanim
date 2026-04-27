@@ -73,7 +73,10 @@ const SeedForm = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.get("/projects");
+      const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
+      const response = await api.get(
+        selectedGroup ? `/projects?crop_group=${selectedGroup}` : "/projects",
+      );
       setProjects(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);

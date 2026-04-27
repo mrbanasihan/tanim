@@ -1,6 +1,6 @@
 // Email validation
 const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@example\.com$/i;
+  const emailRegex = /^[^\s@]+@[^@\s]+\.com$/i;
   return emailRegex.test(email);
 };
 
@@ -228,8 +228,8 @@ const validateUserRegistration = (data) => {
     errors.push("Role must be one of: admin, staff, guest");
   }
 
-  if (data.email && !data.email.toLowerCase().endsWith("@example.com")) {
-    errors.push("Email must use the @example.com domain");
+  if (data.email && !isValidEmail(data.email)) {
+    errors.push("Email must be in the format @<domain>.com");
   }
 
   return {

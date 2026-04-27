@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
+import { getSelectedCropGroup } from "../constants/cropCatalog";
 
 const SeedList = () => {
   const { user } = useAuth();
@@ -186,9 +187,12 @@ const SeedList = () => {
 
   const fetchDropdownData = async () => {
     try {
+      const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
       const [seedsRes, projectsRes] = await Promise.all([
         api.get("/seeds"),
-        api.get("/projects"),
+        api.get(
+          selectedGroup ? `/projects?crop_group=${selectedGroup}` : "/projects",
+        ),
       ]);
 
       // Get unique crop types
