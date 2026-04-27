@@ -45,6 +45,7 @@ app.use(
 );
 
 app.use("/health", healthRoutes);
+app.use("/api/health", healthRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use((err, req, res, next) => {

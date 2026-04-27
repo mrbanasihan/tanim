@@ -35,6 +35,15 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
   family: 4,
+  lookup: (hostname, options, callback) => {
+    const lookupOptions = {
+      ...(typeof options === "object" ? options : {}),
+      family: 4,
+      all: false,
+    };
+
+    dns.lookup(hostname, lookupOptions, callback);
+  },
   ssl: getSslConfig(),
 });
 
