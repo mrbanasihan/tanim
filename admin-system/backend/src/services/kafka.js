@@ -55,17 +55,17 @@ const getSslConfig = () => {
   const ca = readSecret(
     process.env.KAFKA_CA_CERT_PATH,
     process.env.KAFKA_CA_CERT,
-    ["ca.pem"],
+    ["ca.pem", "../ca.pem", "../../ca.pem"],
   );
   const cert = readSecret(
     process.env.KAFKA_CLIENT_CERT_PATH,
     process.env.KAFKA_CLIENT_CERT,
-    ["service.cert"],
+    ["service.cert", "../service.cert", "../../service.cert"],
   );
   const key = readSecret(
     process.env.KAFKA_CLIENT_KEY_PATH,
     process.env.KAFKA_CLIENT_KEY,
-    ["service.key"],
+    ["service.key", "../service.key", "../../service.key"],
   );
 
   if (ca) sslConfig.ca = [ca];
