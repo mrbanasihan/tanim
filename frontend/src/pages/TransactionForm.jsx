@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
@@ -8,8 +8,10 @@ import { toTitleCase } from "../utils/textFormat";
 const TransactionForm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
   const [searchParams] = useSearchParams();
   const seedLotId = searchParams.get("seed_lot_id");
+  const isEditing = Boolean(id);
 
   const [formData, setFormData] = useState({
     type: "check-out",
@@ -26,10 +28,37 @@ const TransactionForm = () => {
   const [error, setError] = useState("");
   const [selectedSeedQuantity, setSelectedSeedQuantity] = useState(0);
   const isGuest = user?.role === "guest";
+  const canManageTransactionActions = ["admin", "researcher"].includes(
+    user?.role,
+  );
 
   useEffect(() => {
     fetchSeedLots();
-  }, [user?.role, user?.crop_groups]);
+    if (isEditing) {
+      fetchTransaction();
+    }
+  }, [user?.role, user?.crop_groups, isEditing, id]);
+
+  const fetchTransaction = async () => {
+    try {
+      const response = await api.get(`/transactions/${id}`);
+      const tx = response.data;
+
+      setFormData({
+        type: tx.transaction_type === "disposal" ? "disposal" : "check-out",
+        seed_id: tx.seed_id || "",
+        quantity: tx.quantity || "",
+        recipient: tx.recipient || "",
+        purpose: tx.purpose || "",
+        affiliation: tx.affiliation || "",
+        contact: tx.contact || "",
+        remarks: tx.remarks || "",
+      });
+    } catch (err) {
+      console.error("Error fetching transaction:", err);
+      setError(err.response?.data?.error || "Failed to load transaction");
+    }
+  };
 
   const fetchSeedLots = async () => {
     try {
@@ -76,7 +105,27 @@ const TransactionForm = () => {
     setLoading(true);
     setError("");
 
+    if (isEditing && !canManageTransactionActions) {
+      setError("Only admin and researcher can edit transactions");
+      setLoading(false);
+      return;
+    }
+
     try {
+      if (isEditing) {
+        const payload = {
+          recipient: formData.recipient,
+          purpose: formData.purpose,
+          affiliation: formData.affiliation,
+          contact: formData.contact,
+          remarks: formData.remarks,
+        };
+
+        await api.put(`/transactions/${id}`, payload);
+        navigate("/transactions");
+        return;
+      }
+
       let endpoint = "/transactions";
       if (formData.type === "check-out") {
         endpoint += "/check-out";
@@ -118,7 +167,9 @@ const TransactionForm = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">New Transaction</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        {isEditing ? "Edit Transaction" : "New Transaction"}
+      </h1>
 
       <div className="bg-white p-6 rounded-lg shadow max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,6 +182,7 @@ const TransactionForm = () => {
               value={formData.type}
               onChange={handleChange}
               required
+              disabled={isEditing}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="check-out">Check Out</option>
@@ -147,6 +199,7 @@ const TransactionForm = () => {
               value={formData.seed_id}
               onChange={handleChange}
               required
+              disabled={isEditing}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select a seed lot</option>
@@ -172,6 +225,7 @@ const TransactionForm = () => {
               min="0.01"
               step="0.01"
               inputMode="decimal"
+              readOnly={isEditing}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -309,7 +363,13 @@ const TransactionForm = () => {
               disabled={loading}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
             >
-              {loading ? "Creating..." : "Create Transaction"}
+              {loading
+                ? isEditing
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditing
+                  ? "Update Transaction"
+                  : "Create Transaction"}
             </button>
             <button
               type="button"

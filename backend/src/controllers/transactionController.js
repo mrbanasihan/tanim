@@ -9,6 +9,23 @@ const {
 } = require("../utils/validation");
 
 const TransactionController = {
+  // GET /api/transactions/:id
+  async getById(req, res) {
+    try {
+      const { id } = req.params;
+      const transaction = await TransactionModel.getById(id);
+
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      res.json(transaction);
+    } catch (error) {
+      console.error("Get transaction error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   // GET /api/transactions
   async getAll(req, res) {
     try {
@@ -143,6 +160,57 @@ const TransactionController = {
       if (error.message === "Seed lot not found") {
         return res.status(404).json({ error: "Seed lot not found" });
       }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // PUT /api/transactions/:id
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+
+      const payload = {
+        recipient: sanitizeTitleCase(req.body.recipient),
+        purpose: sanitizeTitleCase(req.body.purpose),
+        affiliation: sanitizeTitleCase(req.body.affiliation),
+        contact: sanitizeContactNumber(req.body.contact),
+        remarks: sanitizeString(req.body.remarks),
+      };
+
+      const existing = await TransactionModel.getById(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      if (existing.transaction_type === "outgoing" && !payload.recipient) {
+        return res.status(400).json({ error: "Recipient is required" });
+      }
+
+      if (existing.transaction_type === "disposal" && !payload.purpose) {
+        return res.status(400).json({ error: "Purpose is required" });
+      }
+
+      const updated = await TransactionModel.update(id, payload);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update transaction error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // DELETE /api/transactions/:id
+  async delete(req, res) {
+    try {
+      const { id } = req.params;
+      const deleted = await TransactionModel.delete(id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      res.json({ message: "Transaction deleted successfully" });
+    } catch (error) {
+      console.error("Delete transaction error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },

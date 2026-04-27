@@ -103,6 +103,16 @@ function App() {
             }
           />
           <Route
+            path="/transactions/:id/edit"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TransactionForm />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/notifications"
             element={
               <ProtectedRoute>

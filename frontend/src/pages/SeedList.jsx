@@ -946,18 +946,22 @@ const SeedList = () => {
                       >
                         View
                       </Link>
-                      <Link
-                        to={`/seeds/${seed.seed_id}/edit`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(seed.seed_id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                      {["admin", "researcher"].includes(user?.role) && (
+                        <>
+                          <Link
+                            to={`/seeds/${seed.seed_id}/edit`}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(seed.seed_id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))

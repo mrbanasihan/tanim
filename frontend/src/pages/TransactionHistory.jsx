@@ -21,6 +21,30 @@ const TransactionHistory = () => {
   const [varieties, setVarieties] = useState([]);
   const [cropVarietyMap, setCropVarietyMap] = useState({});
   const navigate = useNavigate();
+  const canManageTransactionActions = ["admin", "researcher"].includes(
+    user?.role,
+  );
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (!canManageTransactionActions) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this transaction? This will restore the deducted quantity.",
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/transactions/${transactionId}`);
+      fetchTransactions();
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      alert(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to delete transaction",
+      );
+    }
+  };
 
   const normalizeTransaction = (transaction) => ({
     ...transaction,
@@ -558,6 +582,11 @@ const TransactionHistory = () => {
                             <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                               Date
                             </th>
+                            {canManageTransactionActions && (
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -602,6 +631,28 @@ const TransactionHistory = () => {
                                     transaction.created_at,
                                   ).toLocaleDateString()}
                                 </td>
+                                {canManageTransactionActions && (
+                                  <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap space-x-3">
+                                    <button
+                                      onClick={() =>
+                                        navigate(
+                                          `/transactions/${transaction.id}/edit`,
+                                        )
+                                      }
+                                      className="text-indigo-600 hover:text-indigo-900"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteTransaction(transaction.id)
+                                      }
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      Delete
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                         </tbody>
@@ -703,6 +754,11 @@ const TransactionHistory = () => {
                             <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                               Date
                             </th>
+                            {canManageTransactionActions && (
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -734,6 +790,28 @@ const TransactionHistory = () => {
                                     transaction.created_at,
                                   ).toLocaleDateString()}
                                 </td>
+                                {canManageTransactionActions && (
+                                  <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap space-x-3">
+                                    <button
+                                      onClick={() =>
+                                        navigate(
+                                          `/transactions/${transaction.id}/edit`,
+                                        )
+                                      }
+                                      className="text-indigo-600 hover:text-indigo-900"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteTransaction(transaction.id)
+                                      }
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      Delete
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                         </tbody>

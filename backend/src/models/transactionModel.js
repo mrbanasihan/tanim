@@ -9,6 +9,18 @@ const { createOutboxEvent } = require("../services/kafka/outboxService");
 const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD || 10);
 
 const TransactionModel = {
+  async getById(transactionId) {
+    const query = `
+      SELECT t.*, s.batch_name, s.crop_type, s.variety
+      FROM transaction t
+      JOIN seed_lot s ON t.seed_id = s.seed_id
+      WHERE t.transaction_id = $1
+      LIMIT 1
+    `;
+    const result = await db.query(query, [transactionId]);
+    return result.rows[0];
+  },
+
   async getAll(filters = {}) {
     let query = `
       SELECT t.*, s.batch_name, s.crop_type, s.variety, u.first_name, u.last_name
@@ -260,6 +272,85 @@ const TransactionModel = {
           client,
         });
       }
+
+      await client.query("COMMIT");
+      return transaction;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  async update(transactionId, data) {
+    const query = `
+      UPDATE transaction
+      SET recipient = $1,
+          purpose = $2,
+          affiliation = $3,
+          contact = $4,
+          remarks = $5
+      WHERE transaction_id = $6
+      RETURNING *
+    `;
+
+    const result = await db.query(query, [
+      data.recipient || null,
+      data.purpose || null,
+      data.affiliation || null,
+      data.contact || null,
+      data.remarks || null,
+      transactionId,
+    ]);
+
+    return result.rows[0];
+  },
+
+  async delete(transactionId) {
+    const client = await db.getClient();
+
+    try {
+      await client.query("BEGIN");
+
+      const txQuery = `
+        SELECT transaction_id, seed_id, transaction_type, quantity
+        FROM transaction
+        WHERE transaction_id = $1
+        FOR UPDATE
+      `;
+      const txResult = await client.query(txQuery, [transactionId]);
+      const transaction = txResult.rows[0];
+
+      if (!transaction) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+
+      const seedQuery = `
+        SELECT current_quantity
+        FROM seed_lot
+        WHERE seed_id = $1
+        FOR UPDATE
+      `;
+      const seedResult = await client.query(seedQuery, [transaction.seed_id]);
+
+      if (!seedResult.rows[0]) {
+        throw new Error("Seed lot not found");
+      }
+
+      const currentQuantity = parseFloat(seedResult.rows[0].current_quantity);
+      const restoredQuantity =
+        currentQuantity + parseFloat(transaction.quantity);
+
+      await client.query(
+        `UPDATE seed_lot SET current_quantity = $1 WHERE seed_id = $2`,
+        [restoredQuantity, transaction.seed_id],
+      );
+
+      await client.query(`DELETE FROM transaction WHERE transaction_id = $1`, [
+        transactionId,
+      ]);
 
       await client.query("COMMIT");
       return transaction;
