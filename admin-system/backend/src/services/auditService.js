@@ -19,6 +19,68 @@ const buildUpdateClause = (fields, startIndex = 1) => {
   };
 };
 
+const splitDisplayName = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .replace(/[\-_]+/g, " ");
+  const parts = normalized.split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return { firstName: "Unknown", lastName: "Actor" };
+  }
+
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: "" };
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+};
+
+const toBoolean = (value) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
+  }
+
+  return false;
+};
+
+const isSoftDeletePayload = (actionType, payload) => {
+  if (actionType !== "UPDATE" || !payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const changes = payload.changes || payload.updated_fields || {};
+  return (
+    payload.operation === "soft_delete" ||
+    payload.change_type === "soft_delete" ||
+    payload.deleted === true ||
+    toBoolean(changes.is_active) === false
+  );
+};
+
+const formatAuditRow = (row) => {
+  const actorDisplayName =
+    row.actor_display_name || row.actor || "Unknown actor";
+  const fallbackName = splitDisplayName(actorDisplayName);
+  const softDelete = isSoftDeletePayload(row.action_type, row.payload);
+
+  return {
+    ...row,
+    actor_display_name: actorDisplayName,
+    actor_first_name: row.actor_first_name || fallbackName.firstName,
+    actor_last_name: row.actor_last_name || fallbackName.lastName,
+    action_display_type: softDelete ? "SOFT DELETE" : row.action_type,
+    is_soft_delete: softDelete,
+  };
+};
+
 const recordAuditLog = async ({
   actionType,
   actor,
@@ -45,50 +107,98 @@ const listAuditLogs = async ({
   search = "",
   actionType = "",
   actor = "",
-  limit = 100,
+  limit = 10,
   offset = 0,
+  page,
+  pageSize,
 }) => {
   const conditions = [];
   const values = [];
 
+  const normalizedPageSize = Number(pageSize || limit) || 10;
+  const normalizedPage = Number(page) || 1;
+  const normalizedOffset = Number.isFinite(Number(offset))
+    ? Number(offset)
+    : (normalizedPage - 1) * normalizedPageSize;
+
   if (search) {
     values.push(`%${search}%`);
     conditions.push(
-      `(actor ILIKE $${values.length} OR action_type::text ILIKE $${values.length} OR COALESCE(payload::text, '') ILIKE $${values.length})`,
+      `(a.actor ILIKE $${values.length} OR COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), '') ILIKE $${values.length} OR action_type::text ILIKE $${values.length} OR COALESCE(payload::text, '') ILIKE $${values.length})`,
     );
   }
 
   if (actionType) {
-    values.push(actionType);
-    conditions.push(`action_type = $${values.length}`);
+    if (actionType === "SOFT_DELETE") {
+      conditions.push(
+        `(action_type = 'UPDATE' AND (payload->>'operation' = 'soft_delete' OR payload->>'change_type' = 'soft_delete' OR payload->'changes'->>'is_active' = 'false'))`,
+      );
+    } else {
+      values.push(actionType);
+      conditions.push(`action_type = $${values.length}`);
+    }
   }
 
   if (actor) {
     values.push(`%${actor}%`);
-    conditions.push(`actor ILIKE $${values.length}`);
+    conditions.push(
+      `(a.actor ILIKE $${values.length} OR COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), '') ILIKE $${values.length})`,
+    );
   }
 
-  values.push(Number(limit) || 100);
+  values.push(normalizedPageSize);
   const limitParam = values.length;
-  values.push(Number(offset) || 0);
+  values.push(normalizedOffset);
   const offsetParam = values.length;
 
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
+  const baseFromClause = `
+      FROM audit_log a
+      LEFT JOIN "user" u ON u.user_id::text = a.actor
+    `;
+
+  const totalResult = await db.query(
+    `
+      SELECT COUNT(*)::int AS total
+      ${baseFromClause}
+      ${whereClause}
+    `,
+    values.slice(0, values.length - 2),
+  );
+
   const result = await db.query(
     `
-      SELECT audit_id, action_type, actor, payload, source_event_id, logged_at
-      FROM audit_log
+      SELECT
+        a.audit_id,
+        a.action_type,
+        a.actor,
+        COALESCE(NULLIF(CONCAT_WS(' ', u.first_name, u.last_name), ''), a.actor) AS actor_display_name,
+        u.first_name AS actor_first_name,
+        u.last_name AS actor_last_name,
+        a.payload,
+        a.source_event_id,
+        a.logged_at
+      ${baseFromClause}
       ${whereClause}
-      ORDER BY logged_at DESC
+      ORDER BY a.logged_at DESC
       LIMIT $${limitParam}
       OFFSET $${offsetParam}
     `,
     values,
   );
 
-  return result.rows;
+  const rows = result.rows.map(formatAuditRow);
+  const total = Number(totalResult.rows[0]?.total || 0);
+
+  return {
+    rows,
+    total,
+    page: Math.floor(normalizedOffset / normalizedPageSize) + 1,
+    pageSize: normalizedPageSize,
+    totalPages: total === 0 ? 0 : Math.ceil(total / normalizedPageSize),
+  };
 };
 
 const listUsers = async () => {
@@ -191,7 +301,12 @@ const updateUser = async (userId, data, actor = "admin-system") => {
 
 const deleteUser = async (userId, actor = "admin-system") => {
   const result = await db.query(
-    `DELETE FROM "user" WHERE user_id = $1 RETURNING user_id, email`,
+    `
+      UPDATE "user"
+      SET is_active = FALSE
+      WHERE user_id = $1
+      RETURNING user_id, email, first_name, last_name
+    `,
     [userId],
   );
 
@@ -200,9 +315,15 @@ const deleteUser = async (userId, actor = "admin-system") => {
   }
 
   await recordAuditLog({
-    actionType: "DELETE",
+    actionType: "UPDATE",
     actor,
-    payload: { entity: "user", user_id: userId, email: result.rows[0].email },
+    payload: {
+      entity: "user",
+      user_id: userId,
+      email: result.rows[0].email,
+      operation: "soft_delete",
+      changes: { is_active: false },
+    },
   });
 
   return result.rows[0];

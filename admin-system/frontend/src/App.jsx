@@ -22,10 +22,14 @@ const App = () => {
         <div className="topbar-inner">
           <div className="brand">
             <span className="brand-mark">T</span>
-            <div>
-              <h1>TANIM Admin</h1>
-              <p>Control plane</p>
+            <div className="brand-copy">
+              <span className="brand-kicker">TANIM</span>
+              <h1>Admin System</h1>
+              <p>Operations console</p>
             </div>
+          </div>
+          <div className="topbar-meta">
+            <span className="status-chip">Live control plane</span>
           </div>
           <nav className="nav">
             {navItems.map((item) => (

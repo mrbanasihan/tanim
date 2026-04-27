@@ -30,7 +30,7 @@ router.get(
   "/audit-logs",
   asyncHandler(async (req, res) => {
     const logs = await listAuditLogs(req.query);
-    res.json({ data: logs });
+    res.json({ data: logs.rows, meta: logs });
   }),
 );
 
