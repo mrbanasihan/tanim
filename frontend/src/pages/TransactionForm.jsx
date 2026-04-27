@@ -39,6 +39,20 @@ const TransactionForm = () => {
     }
   }, [user?.role, user?.crop_groups, isEditing, id]);
 
+  useEffect(() => {
+    if (seedLots.length > 0 && formData.seed_id) {
+      const selectedSeed = seedLots.find(
+        (seed) => seed.seed_id === formData.seed_id,
+      );
+      if (selectedSeed) {
+        const quantity = selectedSeed.current_quantity || 0;
+        setSelectedSeedQuantity(parseFloat(quantity));
+      } else {
+        setSelectedSeedQuantity(0);
+      }
+    }
+  }, [seedLots, formData.seed_id]);
+
   const fetchTransaction = async () => {
     try {
       const response = await api.get(`/transactions/${id}`);
