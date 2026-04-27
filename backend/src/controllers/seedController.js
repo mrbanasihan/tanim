@@ -111,9 +111,9 @@ const SeedController = {
       const seedData = {
         ...req.body,
         batch_name: sanitizeTitleCase(req.body.batch_name),
-        crop_type: sanitizeTitleCase(req.body.crop_type),
+        crop_type: sanitizeTitleCase(req.body.crop_type).toLowerCase(),
         variety: sanitizeTitleCase(req.body.variety),
-        classification: sanitizeString(req.body.classification),
+        classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
