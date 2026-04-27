@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const emptyProject = {
   project_name: "",
@@ -22,8 +23,10 @@ const ProjectsPage = () => {
     } catch (err) {
       setProjects([]);
       setError(
-        err?.response?.data?.error ||
+        getErrorMessage(
+          err,
           "Unable to load projects. Check admin backend URL and database configuration.",
+        ),
       );
     }
   };

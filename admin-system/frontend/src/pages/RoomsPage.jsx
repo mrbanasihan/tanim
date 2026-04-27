@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const emptyRoom = {
   room_name: "",
@@ -22,8 +23,10 @@ const RoomsPage = () => {
     } catch (err) {
       setRooms([]);
       setError(
-        err?.response?.data?.error ||
+        getErrorMessage(
+          err,
           "Unable to load rooms. Check admin backend URL and database configuration.",
+        ),
       );
     }
   };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -18,8 +19,10 @@ const AuditLogs = () => {
     } catch (err) {
       setLogs([]);
       setError(
-        err?.response?.data?.error ||
+        getErrorMessage(
+          err,
           "Unable to load audit logs. Check admin backend URL and database configuration.",
+        ),
       );
     }
   };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const emptyUser = {
   email: "",
@@ -23,8 +24,10 @@ const UsersPage = () => {
     } catch (err) {
       setUsers([]);
       setError(
-        err?.response?.data?.error ||
+        getErrorMessage(
+          err,
           "Unable to load users. Check admin backend URL and database configuration.",
+        ),
       );
     }
   };
