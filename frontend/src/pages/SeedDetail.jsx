@@ -23,7 +23,18 @@ const SeedDetail = () => {
   });
 
   useEffect(() => {
-    fetchSeedData();
+    // Refresh data when the tab becomes visible again (returning from transaction form)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchSeedData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [id]);
 
   const fetchSeedData = async () => {
