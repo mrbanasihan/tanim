@@ -1,5 +1,5 @@
 ca.pem
 readme.md
-service*
+/service*
 *.sql
 *.yml

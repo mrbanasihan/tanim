@@ -1,0 +1,410 @@
+const bcrypt = require("bcrypt");
+const db = require("./db");
+
+const buildUpdateClause = (fields, startIndex = 1) => {
+  const entries = Object.entries(fields).filter(
+    ([, value]) => value !== undefined,
+  );
+  const values = [];
+  const parts = [];
+
+  entries.forEach(([key, value], index) => {
+    parts.push(`"${key}" = $${startIndex + index}`);
+    values.push(value);
+  });
+
+  return {
+    clause: parts.join(", "),
+    values,
+  };
+};
+
+const recordAuditLog = async ({
+  actionType,
+  actor,
+  payload,
+  sourceEventId = null,
+}) => {
+  await db.query(
+    `
+      INSERT INTO audit_log (action_type, actor, payload, source_event_id)
+      VALUES ($1, $2, $3, $4)
+    `,
+    [actionType, actor, payload, sourceEventId],
+  );
+};
+
+const listAuditLogs = async ({
+  search = "",
+  actionType = "",
+  actor = "",
+  limit = 100,
+  offset = 0,
+}) => {
+  const conditions = [];
+  const values = [];
+
+  if (search) {
+    values.push(`%${search}%`);
+    conditions.push(
+      `(actor ILIKE $${values.length} OR action_type::text ILIKE $${values.length} OR COALESCE(payload::text, '') ILIKE $${values.length})`,
+    );
+  }
+
+  if (actionType) {
+    values.push(actionType);
+    conditions.push(`action_type = $${values.length}`);
+  }
+
+  if (actor) {
+    values.push(`%${actor}%`);
+    conditions.push(`actor ILIKE $${values.length}`);
+  }
+
+  values.push(Number(limit) || 100);
+  const limitParam = values.length;
+  values.push(Number(offset) || 0);
+  const offsetParam = values.length;
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const result = await db.query(
+    `
+      SELECT audit_id, action_type, actor, payload, source_event_id, logged_at
+      FROM audit_log
+      ${whereClause}
+      ORDER BY logged_at DESC
+      LIMIT $${limitParam}
+      OFFSET $${offsetParam}
+    `,
+    values,
+  );
+
+  return result.rows;
+};
+
+const listUsers = async () => {
+  const result = await db.query(
+    `
+      SELECT user_id, email, first_name, last_name, role, is_active, created_at
+      FROM "user"
+      ORDER BY created_at DESC
+    `,
+  );
+
+  return result.rows;
+};
+
+const createUser = async ({
+  email,
+  password,
+  first_name,
+  last_name,
+  role = "guest",
+  is_active = true,
+  actor = "admin-system",
+}) => {
+  const passwordHash = await bcrypt.hash(password, 10);
+  const result = await db.query(
+    `
+      INSERT INTO "user" (email, password, first_name, last_name, role, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING user_id, email, first_name, last_name, role, is_active, created_at
+    `,
+    [email, passwordHash, first_name, last_name, role, is_active],
+  );
+
+  await recordAuditLog({
+    actionType: "CREATE",
+    actor,
+    payload: { entity: "user", user_id: result.rows[0].user_id, email },
+  });
+
+  return result.rows[0];
+};
+
+const updateUser = async (userId, data, actor = "admin-system") => {
+  const { actor: ignoredActor, ...updateData } = data || {};
+  const nextData = { ...updateData };
+  if (nextData.password) {
+    nextData.password = await bcrypt.hash(nextData.password, 10);
+  }
+
+  const { clause, values } = buildUpdateClause(nextData, 2);
+  if (!clause) {
+    throw new Error("No fields provided for update");
+  }
+
+  const result = await db.query(
+    `
+      UPDATE "user"
+      SET ${clause}
+      WHERE user_id = $1
+      RETURNING user_id, email, first_name, last_name, role, is_active, created_at
+    `,
+    [userId, ...values],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("User not found");
+  }
+
+  await recordAuditLog({
+    actionType: "UPDATE",
+    actor,
+    payload: { entity: "user", user_id: userId, changes: updateData },
+  });
+
+  return result.rows[0];
+};
+
+const deleteUser = async (userId, actor = "admin-system") => {
+  const result = await db.query(
+    `DELETE FROM "user" WHERE user_id = $1 RETURNING user_id, email`,
+    [userId],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("User not found");
+  }
+
+  await recordAuditLog({
+    actionType: "DELETE",
+    actor,
+    payload: { entity: "user", user_id: userId, email: result.rows[0].email },
+  });
+
+  return result.rows[0];
+};
+
+const updateUserRole = async (userId, role, actor = "admin-system") => {
+  const result = await db.query(
+    `
+      UPDATE "user"
+      SET role = $2
+      WHERE user_id = $1
+      RETURNING user_id, email, role
+    `,
+    [userId, role],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("User not found");
+  }
+
+  await recordAuditLog({
+    actionType: "UPDATE",
+    actor,
+    payload: { entity: "user_role", user_id: userId, role },
+  });
+
+  return result.rows[0];
+};
+
+const listProjects = async () => {
+  const result = await db.query(
+    `
+      SELECT project_id, project_name, project_code, description, start_date, end_date, created_by, created_at
+      FROM project
+      ORDER BY created_at DESC
+    `,
+  );
+
+  return result.rows;
+};
+
+const createProject = async (data, actor = "admin-system") => {
+  const result = await db.query(
+    `
+      INSERT INTO project (project_name, project_code, description, start_date, end_date, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `,
+    [
+      data.project_name,
+      data.project_code || null,
+      data.description || null,
+      data.start_date || null,
+      data.end_date || null,
+      data.created_by || null,
+    ],
+  );
+
+  await recordAuditLog({
+    actionType: "CREATE",
+    actor,
+    payload: {
+      entity: "project",
+      project_id: result.rows[0].project_id,
+      project_name: data.project_name,
+    },
+  });
+
+  return result.rows[0];
+};
+
+const updateProject = async (projectId, data, actor = "admin-system") => {
+  const { actor: ignoredActor, ...updateData } = data || {};
+  const { clause, values } = buildUpdateClause(updateData, 2);
+  if (!clause) {
+    throw new Error("No fields provided for update");
+  }
+
+  const result = await db.query(
+    `
+      UPDATE project
+      SET ${clause}
+      WHERE project_id = $1
+      RETURNING *
+    `,
+    [projectId, ...values],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("Project not found");
+  }
+
+  await recordAuditLog({
+    actionType: "UPDATE",
+    actor,
+    payload: { entity: "project", project_id: projectId, changes: updateData },
+  });
+
+  return result.rows[0];
+};
+
+const deleteProject = async (projectId, actor = "admin-system") => {
+  const result = await db.query(
+    `DELETE FROM project WHERE project_id = $1 RETURNING project_id, project_name`,
+    [projectId],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("Project not found");
+  }
+
+  await recordAuditLog({
+    actionType: "DELETE",
+    actor,
+    payload: {
+      entity: "project",
+      project_id: projectId,
+      project_name: result.rows[0].project_name,
+    },
+  });
+
+  return result.rows[0];
+};
+
+const listRooms = async () => {
+  const result = await db.query(
+    `
+      SELECT room_id, room_name, building_location, optimal_temp, temp_start, temp_end, recorded_at
+      FROM room
+      ORDER BY recorded_at DESC
+    `,
+  );
+
+  return result.rows;
+};
+
+const createRoom = async (data, actor = "admin-system") => {
+  const result = await db.query(
+    `
+      INSERT INTO room (room_name, building_location, optimal_temp, temp_start, temp_end)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `,
+    [
+      data.room_name,
+      data.building_location || null,
+      data.optimal_temp || null,
+      data.temp_start || null,
+      data.temp_end || null,
+    ],
+  );
+
+  await recordAuditLog({
+    actionType: "CREATE",
+    actor,
+    payload: {
+      entity: "room",
+      room_id: result.rows[0].room_id,
+      room_name: data.room_name,
+    },
+  });
+
+  return result.rows[0];
+};
+
+const updateRoom = async (roomId, data, actor = "admin-system") => {
+  const { actor: ignoredActor, ...updateData } = data || {};
+  const { clause, values } = buildUpdateClause(updateData, 2);
+  if (!clause) {
+    throw new Error("No fields provided for update");
+  }
+
+  const result = await db.query(
+    `
+      UPDATE room
+      SET ${clause}
+      WHERE room_id = $1
+      RETURNING *
+    `,
+    [roomId, ...values],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("Room not found");
+  }
+
+  await recordAuditLog({
+    actionType: "UPDATE",
+    actor,
+    payload: { entity: "room", room_id: roomId, changes: updateData },
+  });
+
+  return result.rows[0];
+};
+
+const deleteRoom = async (roomId, actor = "admin-system") => {
+  const result = await db.query(
+    `DELETE FROM room WHERE room_id = $1 RETURNING room_id, room_name`,
+    [roomId],
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("Room not found");
+  }
+
+  await recordAuditLog({
+    actionType: "DELETE",
+    actor,
+    payload: {
+      entity: "room",
+      room_id: roomId,
+      room_name: result.rows[0].room_name,
+    },
+  });
+
+  return result.rows[0];
+};
+
+module.exports = {
+  recordAuditLog,
+  listAuditLogs,
+  listUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  updateUserRole,
+  listProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+  listRooms,
+  createRoom,
+  updateRoom,
+  deleteRoom,
+};
