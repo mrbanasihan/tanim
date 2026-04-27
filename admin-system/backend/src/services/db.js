@@ -1,8 +1,32 @@
 const { Pool } = require("pg");
 const dns = require("dns");
+const { promisify } = require("util");
 require("dotenv").config();
 
 dns.setDefaultResultOrder("ipv4first");
+const lookup = promisify(dns.lookup);
+
+let pool;
+let resolvingPool;
+
+const getDbHost = async () => {
+  const configuredHost = process.env.DB_HOST || "localhost";
+
+  if (!configuredHost || configuredHost === "localhost") {
+    return configuredHost;
+  }
+
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(configuredHost)) {
+    return configuredHost;
+  }
+
+  const result = await lookup(configuredHost, {
+    family: 4,
+    all: false,
+  });
+
+  return result.address;
+};
 
 const isEnabled = (value) => {
   if (value === undefined) {
@@ -25,40 +49,52 @@ const getSslConfig = () => {
   };
 };
 
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || "postgres",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "password",
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  family: 4,
-  lookup: (hostname, options, callback) => {
-    const lookupOptions = {
-      ...(typeof options === "object" ? options : {}),
-      family: 4,
-      all: false,
-    };
+const createPool = async () => {
+  const resolvedHost = await getDbHost();
 
-    dns.lookup(hostname, lookupOptions, callback);
-  },
-  ssl: getSslConfig(),
-});
+  return new Pool({
+    host: resolvedHost,
+    port: Number(process.env.DB_PORT) || 5432,
+    database: process.env.DB_NAME || "postgres",
+    user: process.env.DB_USER || "postgres",
+    password: process.env.DB_PASSWORD || "password",
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+    family: 4,
+    ssl: getSslConfig(),
+  });
+};
 
-pool.on("connect", () => {
-  console.log("Connected to admin database");
-});
+const ensurePool = async () => {
+  if (pool) {
+    return pool;
+  }
 
-pool.on("error", (error) => {
-  console.error("Unexpected admin database error:", error);
-  process.exit(1);
-});
+  if (!resolvingPool) {
+    resolvingPool = createPool().then((createdPool) => {
+      pool = createdPool;
+
+      pool.on("connect", () => {
+        console.log("Connected to admin database");
+      });
+
+      pool.on("error", (error) => {
+        console.error("Unexpected admin database error:", error);
+        process.exit(1);
+      });
+
+      return pool;
+    });
+  }
+
+  return resolvingPool;
+};
 
 const query = async (text, params) => {
   const start = Date.now();
-  const result = await pool.query(text, params);
+  const currentPool = await ensurePool();
+  const result = await currentPool.query(text, params);
   const duration = Date.now() - start;
   if (duration > 1000) {
     console.warn(`Slow admin query (${duration}ms):`, text);
@@ -66,15 +102,24 @@ const query = async (text, params) => {
   return result;
 };
 
-const getClient = async () => pool.connect();
+const getClient = async () => {
+  const currentPool = await ensurePool();
+  return currentPool.connect();
+};
 
 const closePool = async () => {
-  await pool.end();
-  console.log("Admin database pool closed");
+  if (pool) {
+    await pool.end();
+    console.log("Admin database pool closed");
+  }
+};
+
+const initPool = async () => {
+  await ensurePool();
 };
 
 module.exports = {
-  pool,
+  initPool,
   query,
   getClient,
   closePool,
