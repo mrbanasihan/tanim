@@ -37,9 +37,7 @@ const TransactionForm = () => {
     if (isEditing) {
       fetchTransaction();
     }
-  }, [user?.role, user?.crop_groups, isEditing, id]);
 
-  useEffect(() => {
     if (seedLots.length > 0 && formData.seed_id) {
       const selectedSeed = seedLots.find(
         (seed) => seed.seed_id === formData.seed_id,
@@ -51,7 +49,14 @@ const TransactionForm = () => {
         setSelectedSeedQuantity(0);
       }
     }
-  }, [seedLots, formData.seed_id]);
+  }, [
+    user?.role,
+    user?.crop_groups,
+    isEditing,
+    id,
+    seedLots,
+    formData.seed_id,
+  ]);
 
   const fetchTransaction = async () => {
     try {
