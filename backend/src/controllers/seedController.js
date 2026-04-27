@@ -62,7 +62,7 @@ const SeedController = {
         ...req.body,
         // batch_name is auto-generated - DO NOT include
         crop_type: sanitizeTitleCase(req.body.crop_type).toLowerCase(),
-        variety: sanitizeTitleCase(req.body.variety).toLowerCase(),
+        variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
