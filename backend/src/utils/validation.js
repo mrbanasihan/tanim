@@ -74,9 +74,9 @@ const isValidEnum = (value, allowedValues) => {
 const validateSeedLot = (data) => {
   const errors = [];
 
-  if (!data.batch_name || data.batch_name.trim() === "") {
-    errors.push("Batch name is required");
-  }
+  // if (!data.batch_name || data.batch_name.trim() === "") {
+  //   errors.push("Batch name is required");
+  // }
 
   if (!data.crop_type) {
     errors.push("Crop type is required");
