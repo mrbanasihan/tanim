@@ -292,7 +292,7 @@ const listUsers = async () => {
       `
         SELECT
           u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
-          COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+          COALESCE(ARRAY_AGG(ucg.crop_group::TEXT ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
         FROM "user" u
         LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
         GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
@@ -314,7 +314,7 @@ const listUsers = async () => {
           COALESCE(u.role, 'guest') AS role,
           COALESCE(u.is_active, true) AS is_active,
           u.created_at,
-          COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+          COALESCE(ARRAY_AGG(ucg.crop_group::TEXT ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
         FROM users u
         LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
         GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at
@@ -376,7 +376,7 @@ const createUser = async ({
     `
       SELECT
         u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
-        COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        COALESCE(ARRAY_AGG(ucg.crop_group::TEXT ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
       FROM "user" u
       LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
       WHERE u.user_id = $1
@@ -452,7 +452,7 @@ const updateUser = async (userId, data, actor = "admin-system") => {
     `
       SELECT
         u.user_id, u.email, u.first_name, u.last_name, u.role, u.is_active, u.created_at,
-        COALESCE(ARRAY_AGG(ucg.crop_group ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        COALESCE(ARRAY_AGG(ucg.crop_group::TEXT ORDER BY ucg.crop_group) FILTER (WHERE ucg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
       FROM "user" u
       LEFT JOIN user_crop_group ucg ON u.user_id = ucg.user_id
       WHERE u.user_id = $1
@@ -541,7 +541,7 @@ const listProjects = async () => {
     `
       SELECT
         p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
-        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        COALESCE(ARRAY_AGG(pcg.crop_group::TEXT ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
       FROM project p
       LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
       GROUP BY p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at
@@ -592,7 +592,7 @@ const createProject = async (data, actor = "admin-system") => {
     `
       SELECT
         p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
-        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        COALESCE(ARRAY_AGG(pcg.crop_group::TEXT ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
       FROM project p
       LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
       WHERE p.project_id = $1
@@ -658,7 +658,7 @@ const updateProject = async (projectId, data, actor = "admin-system") => {
     `
       SELECT
         p.project_id, p.project_name, p.project_code, p.description, p.start_date, p.end_date, p.created_by, p.created_at,
-        COALESCE(ARRAY_AGG(pcg.crop_group ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
+        COALESCE(ARRAY_AGG(pcg.crop_group::TEXT ORDER BY pcg.crop_group) FILTER (WHERE pcg.crop_group IS NOT NULL), ARRAY[]::TEXT[]) AS crop_groups
       FROM project p
       LEFT JOIN project_crop_group pcg ON p.project_id = pcg.project_id
       WHERE p.project_id = $1
