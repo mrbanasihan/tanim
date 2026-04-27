@@ -19,11 +19,15 @@ const SeedForm = () => {
     classification: "",
     has_project: false,
     project_id: "",
+    moisture_content: "",
     gross_weight: "",
     cleaned_quantity: "",
+    area_planted: "",
     storage_area: "",
     remarks: "",
   });
+  const [areaPlantedOther, setAreaPlantedOther] = useState("");
+  const [areaOptions, setAreaOptions] = useState([]);
   const [projects, setProjects] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -65,6 +69,7 @@ const SeedForm = () => {
     }
 
     fetchProjects();
+    fetchAreaOptions();
     fetchRooms();
     if (isEditing) {
       fetchSeed();
@@ -95,6 +100,26 @@ const SeedForm = () => {
     }
   };
 
+  const fetchAreaOptions = async () => {
+    try {
+      const response = await api.get("/seeds");
+      const seeds = Array.isArray(response.data) ? response.data : [];
+      const validCropTypes = new Set(cropTypes);
+      const uniqueAreas = [
+        ...new Set(
+          seeds
+            .filter((seed) => validCropTypes.has(seed.crop_type))
+            .map((seed) => (seed.area_planted || "").trim())
+            .filter(Boolean),
+        ),
+      ].sort((a, b) => a.localeCompare(b));
+      setAreaOptions(uniqueAreas);
+    } catch (error) {
+      console.error("Error fetching area planted options:", error);
+      setAreaOptions([]);
+    }
+  };
+
   const fetchSeed = async () => {
     try {
       const response = await api.get(`/seeds/${id}`);
@@ -105,11 +130,14 @@ const SeedForm = () => {
         classification: data.classification,
         has_project: !!data.project_id,
         project_id: data.project_id || "",
+        moisture_content: data.moisture_content || "",
         gross_weight: data.gross_weight,
         cleaned_quantity: data.cleaned_quantity,
+        area_planted: data.area_planted || "",
         storage_area: data.storage_area,
         remarks: data.remarks,
       });
+      setAreaPlantedOther("");
     } catch (error) {
       console.error("Error fetching seed:", error);
       setError("Failed to load seed data");
@@ -126,6 +154,10 @@ const SeedForm = () => {
 
     if (name === "crop_type") {
       newFormData.variety = "";
+    }
+
+    if (name === "area_planted" && value !== "others") {
+      setAreaPlantedOther("");
     }
 
     if (name === "has_project" && !checked) {
@@ -149,7 +181,20 @@ const SeedForm = () => {
     const submitData = {
       ...formData,
       project_id: formData.has_project ? formData.project_id : null,
+      area_planted:
+        formData.area_planted === "others"
+          ? areaPlantedOther
+          : formData.area_planted,
     };
+
+    if (
+      formData.area_planted === "others" &&
+      !(areaPlantedOther || "").trim()
+    ) {
+      setError("Please enter an area planted value for Others");
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isEditing) {
@@ -157,6 +202,15 @@ const SeedForm = () => {
       } else {
         await api.post("/seeds", submitData);
       }
+
+      const finalArea = (submitData.area_planted || "").trim();
+      if (finalArea) {
+        setAreaOptions((prev) => {
+          if (prev.includes(finalArea)) return prev;
+          return [...prev, finalArea].sort((a, b) => a.localeCompare(b));
+        });
+      }
+
       navigate("/seeds");
     } catch (error) {
       console.error("Error saving seed:", error);
@@ -274,6 +328,23 @@ const SeedForm = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moisture Content (%)
+            </label>
+            <input
+              type="number"
+              name="moisture_content"
+              value={formData.moisture_content}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              max="100"
+              inputMode="decimal"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Gross Weight (kg)
             </label>
             <input
@@ -324,6 +395,39 @@ const SeedForm = () => {
               Auto-set from cleaned quantity, or gross weight if cleaned is
               empty.
             </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Area Planted
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <select
+                name="area_planted"
+                value={formData.area_planted}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Area Planted</option>
+                {areaOptions.map((area) => (
+                  <option key={area} value={area}>
+                    {toTitleCase(area)}
+                  </option>
+                ))}
+                <option value="others">Others</option>
+              </select>
+
+              {formData.area_planted === "others" && (
+                <input
+                  type="text"
+                  name="area_planted_other"
+                  value={areaPlantedOther}
+                  onChange={(e) => setAreaPlantedOther(e.target.value)}
+                  placeholder="Enter area planted"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
           </div>
 
           <div>

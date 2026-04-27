@@ -86,6 +86,17 @@ const validateSeedLot = (data) => {
     errors.push("Variety is required");
   }
 
+  if (
+    data.moisture_content !== undefined &&
+    data.moisture_content !== null &&
+    data.moisture_content !== ""
+  ) {
+    const moisture = parseFloat(data.moisture_content);
+    if (Number.isNaN(moisture) || moisture < 0 || moisture > 100) {
+      errors.push("Moisture content must be between 0 and 100");
+    }
+  }
+
   // Gross weight is required for creation, optional for updates
   // Also check initial_quantity as fallback for backwards compatibility
   const weight = data.gross_weight || data.initial_quantity;

@@ -6,8 +6,22 @@ const {
 } = require("../constants/kafka");
 const { createOutboxEvent } = require("../services/kafka/outboxService");
 
+const ensureSeedLotColumns = async () => {
+  await db.query(`
+    ALTER TABLE seed_lot
+    ADD COLUMN IF NOT EXISTS moisture_content DECIMAL(5, 2)
+  `);
+
+  await db.query(`
+    ALTER TABLE seed_lot
+    ADD COLUMN IF NOT EXISTS area_planted VARCHAR(255)
+  `);
+};
+
 const SeedModel = {
   async getAll(filters = {}) {
+    await ensureSeedLotColumns();
+
     let query = `
             SELECT s.*, p.project_name as project_name
             FROM seed_lot s
@@ -59,6 +73,8 @@ const SeedModel = {
   },
 
   async getById(seedId) {
+    await ensureSeedLotColumns();
+
     const query = `
             SELECT s.*, p.project_name as project_name
             FROM seed_lot s
@@ -70,6 +86,8 @@ const SeedModel = {
   },
 
   async create(data) {
+    await ensureSeedLotColumns();
+
     const client = await db.getClient();
 
     try {
@@ -95,10 +113,10 @@ const SeedModel = {
       const query = `
             INSERT INTO seed_lot (
                 seed_id, project_id, batch_name, crop_type, variety, classification,
-                gross_weight, cleaned_quantity, current_quantity,
-                date_received, remarks, is_active, created_by, created_at
+              moisture_content, gross_weight, cleaned_quantity, current_quantity,
+              date_received, area_planted, remarks, is_active, created_by, created_at
             )
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, $11, NOW())
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13, NOW())
             RETURNING *
       `;
       const result = await client.query(query, [
@@ -107,10 +125,12 @@ const SeedModel = {
         data.crop_type,
         data.variety,
         data.classification,
+          data.moisture_content,
         data.gross_weight,
         data.cleaned_quantity || null,
         data.cleaned_quantity || data.gross_weight,
         null,
+          data.area_planted || null,
         data.remarks || null,
         data.created_by,
       ]);
@@ -145,6 +165,8 @@ const SeedModel = {
   },
 
   async update(seedId, data) {
+    await ensureSeedLotColumns();
+
     const client = await db.getClient();
 
     try {
@@ -156,12 +178,14 @@ const SeedModel = {
             crop_type = $2,
             variety = $3,
             classification = $4,
-            gross_weight = $5,
-            cleaned_quantity = $6,
-            current_quantity = $7,
-            date_received = $8,
-            remarks = $9
-        WHERE seed_id = $10
+            moisture_content = $5,
+            gross_weight = $6,
+            cleaned_quantity = $7,
+            current_quantity = $8,
+            date_received = $9,
+            area_planted = $10,
+            remarks = $11
+        WHERE seed_id = $12
         RETURNING *
     `;
       const result = await client.query(query, [
@@ -169,10 +193,12 @@ const SeedModel = {
         data.crop_type,
         data.variety,
         data.classification,
+        data.moisture_content,
         data.gross_weight || 0,
         data.cleaned_quantity || null,
         data.cleaned_quantity || data.gross_weight || 0,
         null,
+        data.area_planted || null,
         data.remarks || null,
         seedId,
       ]);

@@ -6,6 +6,12 @@ const {
   sanitizeQuantity,
 } = require("../utils/validation");
 
+const sanitizeOptionalNumber = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 const SeedController = {
   // GET /api/seeds
   async getAll(req, res) {
@@ -55,12 +61,14 @@ const SeedController = {
         crop_type: sanitizeTitleCase(req.body.crop_type),
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification),
+        moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
             ? sanitizeQuantity(req.body.cleaned_quantity)
             : null,
+        area_planted: sanitizeTitleCase(req.body.area_planted),
         remarks: sanitizeString(req.body.remarks),
       };
 
@@ -91,12 +99,14 @@ const SeedController = {
         crop_type: sanitizeTitleCase(req.body.crop_type),
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification),
+        moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
             ? sanitizeQuantity(req.body.cleaned_quantity)
             : null,
+        area_planted: sanitizeTitleCase(req.body.area_planted),
         remarks: sanitizeString(req.body.remarks),
       };
 

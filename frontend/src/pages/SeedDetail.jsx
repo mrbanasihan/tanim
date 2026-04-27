@@ -191,6 +191,14 @@ const SeedDetail = () => {
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
               <label className="block text-sm font-semibold text-slate-600 mb-1">
+                Moisture Content (%)
+              </label>
+              <p className="text-lg font-medium text-slate-900">
+                {seed.moisture_content ?? "-"}
+              </p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl">
+              <label className="block text-sm font-semibold text-slate-600 mb-1">
                 Gross Weight (kg)
               </label>
               <p className="text-lg font-medium text-green-600 font-bold">
@@ -215,10 +223,18 @@ const SeedDetail = () => {
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl">
               <label className="block text-sm font-semibold text-slate-600 mb-1">
+                Area Planted
+              </label>
+              <p className="text-lg font-medium text-slate-900">
+                {seed.area_planted || "-"}
+              </p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl">
+              <label className="block text-sm font-semibold text-slate-600 mb-1">
                 Storage Area
               </label>
               <p className="text-lg font-medium text-slate-900">
-                {seed.storage_area}
+                {seed.storage_area || "-"}
               </p>
             </div>
             {seed.project_name && (
