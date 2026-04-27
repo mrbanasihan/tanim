@@ -13,8 +13,18 @@ const normalizeBaseUrl = (value) => {
   return trimmed;
 };
 
+const getDefaultBaseUrl = () => {
+  if (import.meta.env.DEV) {
+    return "/api";
+  }
+
+  return "https://admin-1-t84v.onrender.com/api";
+};
+
 const api = axios.create({
-  baseURL: normalizeBaseUrl(import.meta.env.VITE_ADMIN_API_BASE_URL || "/api"),
+  baseURL: normalizeBaseUrl(
+    import.meta.env.VITE_ADMIN_API_BASE_URL || getDefaultBaseUrl(),
+  ),
   headers: {
     "Content-Type": "application/json",
   },
