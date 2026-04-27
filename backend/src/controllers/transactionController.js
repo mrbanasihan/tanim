@@ -29,11 +29,23 @@ const TransactionController = {
   // GET /api/transactions
   async getAll(req, res) {
     try {
-      const { seed_id, transaction_type, start_date, end_date } = req.query;
+      const {
+        seed_id,
+        seed_lot_id,
+        transaction_type,
+        type,
+        crop_type,
+        variety,
+        start_date,
+        end_date,
+      } = req.query;
 
       const transactions = await TransactionModel.getAll({
-        seed_id,
+        seed_id: seed_id || seed_lot_id,
         transaction_type,
+        type,
+        crop_type,
+        variety,
         start_date,
         end_date,
         userRole: req.user?.role,

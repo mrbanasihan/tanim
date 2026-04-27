@@ -56,8 +56,6 @@ const SeedController = {
   // POST /api/seeds
   async create(req, res) {
     try {
-      console.log("Request body:", JSON.stringify(req.body, null, 2)); // ← ADD THIS
-
       const seedData = {
         ...req.body,
         // batch_name is auto-generated - DO NOT include
@@ -65,42 +63,31 @@ const SeedController = {
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
-        gross_weight: sanitizeQuantity(req.body.gross_weight),
+        gross_weight: sanitizeOptionalNumber(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
-            ? sanitizeQuantity(req.body.cleaned_quantity)
+            ? sanitizeOptionalNumber(req.body.cleaned_quantity)
             : null,
         area_planted: sanitizeTitleCase(req.body.area_planted),
         remarks: sanitizeString(req.body.remarks),
       };
 
-      console.log("Processed seedData:", JSON.stringify(seedData, null, 2)); // ← ADD THIS
-
-      const validation = validateSeedLot(seedData);
+      const validation = validateSeedLot(seedData, {
+        requireGrossWeight: true,
+      });
       if (!validation.isValid) {
-        console.log("Validation errors:", validation.errors); // ← ADD THIS
         return res.status(400).json({ error: validation.errors.join(", ") });
       }
 
       seedData.created_by = req.user.userId;
-      console.log("Creating seed with user:", seedData.created_by); // ← ADD THIS
 
       const seed = await SeedModel.create(seedData, req.user.userId);
 
-      console.log("Seed created successfully:", seed.seed_id); // ← ADD THIS
       res.status(201).json(seed);
     } catch (error) {
       console.error("Create seed error:", error);
-      console.error("Error stack:", error.stack); // ← ADD THIS
-      console.error("Error details:", {
-        message: error.message,
-        code: error.code,
-        detail: error.detail,
-      }); // ← ADD THIS
-      res
-        .status(500)
-        .json({ error: "Internal server error", details: error.message });
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -115,17 +102,19 @@ const SeedController = {
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
-        gross_weight: sanitizeQuantity(req.body.gross_weight),
+        gross_weight: sanitizeOptionalNumber(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
-            ? sanitizeQuantity(req.body.cleaned_quantity)
+            ? sanitizeOptionalNumber(req.body.cleaned_quantity)
             : null,
         area_planted: sanitizeTitleCase(req.body.area_planted),
         remarks: sanitizeString(req.body.remarks),
       };
 
-      const validation = validateSeedLot(seedData);
+      const validation = validateSeedLot(seedData, {
+        requireGrossWeight: false,
+      });
       if (!validation.isValid) {
         return res.status(400).json({ error: validation.errors.join(", ") });
       }

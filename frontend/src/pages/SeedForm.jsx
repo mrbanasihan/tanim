@@ -214,7 +214,11 @@ const SeedForm = () => {
       navigate("/seeds");
     } catch (error) {
       console.error("Error saving seed:", error);
-      setError(error.response?.data?.message || "Failed to save seed lot");
+      setError(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to save seed lot",
+      );
     } finally {
       setLoading(false);
     }

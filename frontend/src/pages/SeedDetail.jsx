@@ -11,6 +11,7 @@ const SeedDetail = () => {
   const [germinationRecords, setGerminationRecords] = useState([]);
   const [latestGermination, setLatestGermination] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [relatedLoading, setRelatedLoading] = useState(false);
   const [error, setError] = useState("");
   const canEditSeed = ["admin", "staff"].includes(user?.role);
   const canDeleteSeed = user?.role === "admin";
@@ -23,10 +24,12 @@ const SeedDetail = () => {
   });
 
   useEffect(() => {
+    fetchSeedData();
+
     // Refresh data when the tab becomes visible again (returning from transaction form)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        fetchSeedData();
+        fetchSeedData({ silent: true });
       }
     };
 
@@ -37,34 +40,48 @@ const SeedDetail = () => {
     };
   }, [id]);
 
-  const fetchSeedData = async () => {
+  const fetchSeedData = async ({ silent = false } = {}) => {
     try {
-      const [seedResponse, transactionsResponse, germinationResponse] =
-        await Promise.all([
-          api.get(`/seeds/${id}`),
-          api.get(`/seeds/${id}/transactions`),
-          api.get(`/seeds/${id}/germination-records`),
-        ]);
-      setSeed(seedResponse.data);
-      setTransactions(transactionsResponse.data.map(normalizeTransaction));
+      if (!silent) {
+        setLoading(true);
+      }
+      setError("");
 
-      // Fetch germination records
+      const seedResponse = await api.get(`/seeds/${id}`);
+      setSeed(seedResponse.data);
+      if (!silent) {
+        setLoading(false);
+      }
+
+      setRelatedLoading(true);
+      const [transactionsResponse, germinationResponse] = await Promise.all([
+        api.get(`/seeds/${id}/transactions`),
+        api.get(`/seeds/${id}/germination-records`),
+      ]);
+
+      setTransactions(
+        (transactionsResponse.data || []).map(normalizeTransaction),
+      );
+
       const records = germinationResponse.data || [];
-      console.log("Germination records:", records);
       setGerminationRecords(records);
 
-      // Get the most recent germination record
       if (records.length > 0) {
         const sorted = [...records].sort(
           (a, b) => new Date(b.created_at) - new Date(a.created_at),
         );
         setLatestGermination(sorted[0]);
+      } else {
+        setLatestGermination(null);
       }
     } catch (error) {
       console.error("Error fetching seed data:", error);
       setError("Failed to load seed data");
     } finally {
-      setLoading(false);
+      setRelatedLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -297,7 +314,9 @@ const SeedDetail = () => {
               Germination Records
             </h2>
             <span className="text-sm text-slate-500">
-              {germinationRecords.length} records
+              {relatedLoading
+                ? "Loading..."
+                : `${germinationRecords.length} records`}
             </span>
           </div>
 

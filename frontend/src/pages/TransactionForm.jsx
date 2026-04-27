@@ -37,7 +37,9 @@ const TransactionForm = () => {
     if (isEditing) {
       fetchTransaction();
     }
+  }, [user?.role, user?.crop_groups, isEditing, id]);
 
+  useEffect(() => {
     if (seedLots.length > 0 && formData.seed_id) {
       const selectedSeed = seedLots.find(
         (seed) => seed.seed_id === formData.seed_id,
@@ -48,15 +50,11 @@ const TransactionForm = () => {
       } else {
         setSelectedSeedQuantity(0);
       }
+      return;
     }
-  }, [
-    user?.role,
-    user?.crop_groups,
-    isEditing,
-    id,
-    seedLots,
-    formData.seed_id,
-  ]);
+
+    setSelectedSeedQuantity(0);
+  }, [seedLots, formData.seed_id]);
 
   const fetchTransaction = async () => {
     try {
@@ -178,7 +176,11 @@ const TransactionForm = () => {
       navigate("/transactions");
     } catch (error) {
       console.error("Error creating transaction:", error);
-      setError(error.response?.data?.message || "Failed to create transaction");
+      setError(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to create transaction",
+      );
     } finally {
       setLoading(false);
     }

@@ -71,8 +71,9 @@ const isValidEnum = (value, allowedValues) => {
 };
 
 // Seed lot validation
-const validateSeedLot = (data) => {
+const validateSeedLot = (data, options = {}) => {
   const errors = [];
+  const { requireGrossWeight = false } = options;
 
   // if (!data.batch_name || data.batch_name.trim() === "") {
   //   errors.push("Batch name is required");
@@ -97,20 +98,30 @@ const validateSeedLot = (data) => {
     }
   }
 
-  // Gross weight is required for creation, optional for updates
-  // Also check initial_quantity as fallback for backwards compatibility
-  const weight = data.gross_weight || data.initial_quantity;
-  if (weight !== undefined && weight !== "" && !isValidQuantity(weight)) {
+  const grossWeight = data.gross_weight ?? data.initial_quantity;
+  if (
+    requireGrossWeight &&
+    (grossWeight === undefined || grossWeight === null || grossWeight === "")
+  ) {
+    errors.push("Gross weight is required");
+  } else if (
+    grossWeight !== undefined &&
+    grossWeight !== null &&
+    grossWeight !== "" &&
+    !isValidQuantity(grossWeight)
+  ) {
     errors.push("Gross weight must be a positive number");
   }
 
   if (
     data.cleaned_quantity !== undefined &&
     data.cleaned_quantity !== null &&
-    data.cleaned_quantity !== "" &&
-    !isValidQuantity(data.cleaned_quantity)
+    data.cleaned_quantity !== ""
   ) {
-    errors.push("Cleaned quantity must be a positive number");
+    const cleaned = parseFloat(data.cleaned_quantity);
+    if (Number.isNaN(cleaned) || cleaned < 0) {
+      errors.push("Cleaned quantity must be zero or a positive number");
+    }
   }
 
   if (data.date_received && !isValidDate(data.date_received)) {
