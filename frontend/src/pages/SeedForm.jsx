@@ -215,11 +215,16 @@ const SeedForm = () => {
     } catch (error) {
       console.error("Error saving seed:", error);
       console.error("Full error response:", error.response?.data);
-      const errorMsg =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to save seed lot";
+      let errorMsg = "Failed to save seed lot";
+      if (error.response?.data?.detail) {
+        errorMsg = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
       setError(errorMsg);
     } finally {
       setLoading(false);

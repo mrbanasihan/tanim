@@ -94,11 +94,12 @@ const SeedController = {
       console.error("Create seed error:", error);
       console.error("Error message:", error.message);
       console.error("Error code:", error.code);
-      console.error("Seed data:", seedData);
+      console.error("Error detail:", error.detail);
       res.status(500).json({
         error: "Internal server error",
-        message: error.message,
-        code: error.code,
+        message: error.message || "Unknown error",
+        code: error.code || "UNKNOWN",
+        detail: error.detail || "",
       });
     }
   },
