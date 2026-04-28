@@ -63,7 +63,7 @@ const SeedController = {
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
-        gross_weight: sanitizeOptionalNumber(req.body.gross_weight),
+        gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
@@ -87,7 +87,14 @@ const SeedController = {
       res.status(201).json(seed);
     } catch (error) {
       console.error("Create seed error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error message:", error.message);
+      console.error("Error code:", error.code);
+      console.error("Seed data:", seedData);
+      res.status(500).json({
+        error: "Internal server error",
+        message: error.message,
+        code: error.code,
+      });
     }
   },
 
@@ -102,7 +109,7 @@ const SeedController = {
         variety: sanitizeTitleCase(req.body.variety),
         classification: sanitizeString(req.body.classification).toLowerCase(),
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
-        gross_weight: sanitizeOptionalNumber(req.body.gross_weight),
+        gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
           req.body.cleaned_quantity !== undefined &&
           req.body.cleaned_quantity !== ""
