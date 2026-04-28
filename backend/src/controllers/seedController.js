@@ -82,6 +82,11 @@ const SeedController = {
 
       seedData.created_by = req.user.userId;
 
+      console.log(
+        "Sanitized seedData before DB:",
+        JSON.stringify(seedData, null, 2),
+      );
+
       const seed = await SeedModel.create(seedData, req.user.userId);
 
       res.status(201).json(seed);
