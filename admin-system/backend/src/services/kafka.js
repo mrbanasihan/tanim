@@ -1,6 +1,7 @@
 const { Kafka, logLevel } = require("kafkajs");
 const fs = require("fs");
 const path = require("path");
+const { handleTanimEvent } = require("./kafkaEventHandlers");
 
 const KAFKA_TOPICS = ["tanim.seeds", "tanim.transactions", "tanim.alerts"];
 
@@ -164,13 +165,31 @@ const startKafkaConsumer = async () => {
         return;
       }
 
-      const parsed = JSON.parse(message.value.toString("utf8"));
-      lastEvent = {
-        topic,
-        receivedAt: new Date().toISOString(),
-        payload: parsed,
-      };
-      console.log(`[admin-system] event received on ${topic}`);
+      try {
+        const parsed = JSON.parse(message.value.toString("utf8"));
+        const handled = await handleTanimEvent(parsed, topic);
+
+        lastEvent = {
+          topic,
+          receivedAt: new Date().toISOString(),
+          eventId: handled.event.event_id || null,
+          eventType: handled.event.event_type || null,
+          actor: handled.actor,
+          actionType: handled.actionType,
+          deduplicated: !handled.inserted,
+          payload: handled.payload,
+        };
+        lastError = null;
+        console.log(
+          `[admin-system] processed ${handled.event.event_type || "UnknownEvent"} from ${topic}${handled.inserted ? "" : " (duplicate skipped)"}`,
+        );
+      } catch (error) {
+        lastError = error.message;
+        console.error(
+          `[admin-system] failed to process event on ${topic}:`,
+          error,
+        );
+      }
     },
   });
 };

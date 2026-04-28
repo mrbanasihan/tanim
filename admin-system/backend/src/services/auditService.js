@@ -166,6 +166,28 @@ const recordAuditLog = async ({
   );
 };
 
+const recordAuditLogOnce = async ({
+  actionType,
+  actor,
+  payload,
+  sourceEventId = null,
+}) => {
+  const result = await db.query(
+    `
+      INSERT INTO audit_log (action_type, actor, payload, source_event_id)
+      SELECT $1, $2, $3, $4
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM audit_log
+        WHERE source_event_id = $4
+      )
+    `,
+    [actionType, actor, payload, sourceEventId],
+  );
+
+  return result.rowCount > 0;
+};
+
 const hasTable = async (tableName) => {
   const result = await db.query(`SELECT to_regclass($1) AS table_name`, [
     tableName,
@@ -814,6 +836,7 @@ const deleteRoom = async (roomId, actor = "admin-system") => {
 
 module.exports = {
   recordAuditLog,
+  recordAuditLogOnce,
   listAuditLogs,
   listUsers,
   createUser,
