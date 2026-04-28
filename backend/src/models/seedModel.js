@@ -110,15 +110,6 @@ const SeedModel = {
       }
       batchName += `-${data.crop_type}-${data.variety}`;
 
-      console.log("Generated batch_name:", batchName);
-      console.log("Data values:", {
-        project_id: data.project_id,
-        crop_type: data.crop_type,
-        variety: data.variety,
-        classification: data.classification,
-        gross_weight: data.gross_weight,
-      });
-
       const query = `
             INSERT INTO seed_lot (
                 seed_id, project_id, batch_name, crop_type, variety, classification,
@@ -145,7 +136,6 @@ const SeedModel = {
       ]);
 
       const seed = result.rows[0];
-      console.log("Seed created successfully:", seed.seed_id);
 
       await createOutboxEvent({
         eventType: KAFKA_EVENTS.SEED_REGISTERED,
@@ -168,10 +158,6 @@ const SeedModel = {
       return seed;
     } catch (error) {
       await client.query("ROLLBACK");
-      console.error("Seed create DB error:", error.message);
-      console.error("Error code:", error.code);
-      console.error("Error detail:", error.detail);
-      console.error("Error constraint:", error.constraint);
       throw error;
     } finally {
       client.release();

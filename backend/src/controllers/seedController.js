@@ -59,9 +59,10 @@ const SeedController = {
       const seedData = {
         ...req.body,
         // batch_name is auto-generated - DO NOT include
-        crop_type: sanitizeTitleCase(req.body.crop_type).toLowerCase(),
-        variety: sanitizeTitleCase(req.body.variety),
-        classification: sanitizeString(req.body.classification).toLowerCase(),
+        // Dropdown values already match enum exactly, do not sanitize
+        crop_type: req.body.crop_type,
+        variety: req.body.variety,
+        classification: req.body.classification,
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
@@ -81,11 +82,6 @@ const SeedController = {
       }
 
       seedData.created_by = req.user.userId;
-
-      console.log(
-        "Sanitized seedData before DB:",
-        JSON.stringify(seedData, null, 2),
-      );
 
       const seed = await SeedModel.create(seedData, req.user.userId);
 
@@ -111,9 +107,10 @@ const SeedController = {
       const seedData = {
         ...req.body,
         batch_name: sanitizeTitleCase(req.body.batch_name),
-        crop_type: sanitizeTitleCase(req.body.crop_type).toLowerCase(),
-        variety: sanitizeTitleCase(req.body.variety),
-        classification: sanitizeString(req.body.classification).toLowerCase(),
+        // Dropdown values already match enum exactly, do not sanitize
+        crop_type: req.body.crop_type,
+        variety: req.body.variety,
+        classification: req.body.classification,
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
         cleaned_quantity:
