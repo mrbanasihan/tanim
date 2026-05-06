@@ -202,7 +202,7 @@ const startTemperatureProcessor = async () => {
             source: event.source || "tanim.temperature",
             recorded_at: new Date().toISOString(),
           },
-          sourceEventId: event.event_id || event.source_event_id || null,
+          sourceEventId: null,
         });
       } catch (err) {
         console.error(
