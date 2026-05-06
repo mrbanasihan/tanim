@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AuditLogs from "./pages/AuditLogs";
+import TemperatureLogs from "./pages/TemperatureLogs";
 import UsersPage from "./pages/UsersPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import RoomsPage from "./pages/RoomsPage";
@@ -10,6 +11,7 @@ import "./App.css";
 const navItems = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/audit-logs", label: "Audit Logs" },
+  { to: "/temperature-logs", label: "Temperature Logs" },
   { to: "/users", label: "Users" },
   { to: "/projects", label: "Projects" },
   { to: "/rooms", label: "Rooms" },
@@ -52,6 +54,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/audit-logs" element={<AuditLogs />} />
+          <Route path="/temperature-logs" element={<TemperatureLogs />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/rooms" element={<RoomsPage />} />

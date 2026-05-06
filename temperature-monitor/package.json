@@ -1,0 +1,28 @@
+{
+  "name": "temperature-monitor",
+  "version": "1.0.0",
+  "description": "Standalone Kafka producer for TANIM temperature telemetry",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "kafka",
+    "temperature",
+    "arduino",
+    "dht11"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@serialport/parser-readline": "^13.0.0",
+    "dotenv": "^17.4.1",
+    "kafkajs": "^2.2.4",
+    "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

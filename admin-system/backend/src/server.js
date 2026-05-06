@@ -14,7 +14,18 @@ startKafkaConsumer().catch((error) => {
   console.error("Admin Kafka consumer startup error:", error);
 });
 
+// Start temperature processor (consumes tanim.temperature and publishes admin.temperature-feedback)
+const {
+  startTemperatureProcessor,
+  stopTemperatureProcessor,
+} = require("./services/temperatureProcessor");
+
+startTemperatureProcessor().catch((error) => {
+  console.error("Admin temperature processor startup error:", error);
+});
+
 const shutdown = async () => {
+  await stopTemperatureProcessor().catch(() => undefined);
   await disconnectKafka().catch(() => undefined);
   await closePool().catch(() => undefined);
   server.close(() => process.exit(0));

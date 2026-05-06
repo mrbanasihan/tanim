@@ -2,6 +2,8 @@ const KAFKA_TOPICS = {
   SEEDS: "tanim.seeds",
   TRANSACTIONS: "tanim.transactions",
   ALERTS: "tanim.alerts",
+  TEMPERATURE: "tanim.temperature",
+  TEMPERATURE_FEEDBACK: "admin.temperature-feedback",
 };
 
 const KAFKA_EVENTS = {
@@ -10,6 +12,7 @@ const KAFKA_EVENTS = {
   SEED_WITHDRAWAL: "SeedWithdrawalEvent",
   SEED_DISPOSAL: "SeedDisposalEvent",
   LOW_STOCK_ALERT: "LowStockAlertEvent",
+  TEMPERATURE_ESCALATION: "TemperatureEscalation",
 };
 
 const KAFKA_STATUS = {

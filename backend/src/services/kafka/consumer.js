@@ -26,6 +26,19 @@ const startConsumerOnce = async () => {
     await consumer.subscribe({ topic, fromBeginning: false });
   }
 
+  // Subscribe to admin feedback topic
+  try {
+    await consumer.subscribe({
+      topic: "admin.temperature-feedback",
+      fromBeginning: false,
+    });
+  } catch (err) {
+    console.warn(
+      "Failed to subscribe to admin.temperature-feedback:",
+      err.message,
+    );
+  }
+
   setKafkaState({ consumerReady: true, lastError: null });
 
   await consumer.run({

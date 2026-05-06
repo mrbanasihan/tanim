@@ -1,5 +1,6 @@
 const db = require("../../services/db");
 const { KAFKA_EVENTS } = require("../../constants/kafka");
+const { handleTemperatureEscalation } = require("./temperatureFeedbackHandler");
 
 const ensureEventIdempotency = async (eventId) => {
   const [auditResult, ipbResult] = await Promise.all([
@@ -99,6 +100,8 @@ const handleEvent = async (event) => {
       return handleTransactionEvent(event);
     case KAFKA_EVENTS.LOW_STOCK_ALERT:
       return handleLowStockAlertEvent(event);
+    case KAFKA_EVENTS.TEMPERATURE_ESCALATION:
+      return handleTemperatureEscalation(event);
     default:
       return undefined;
   }

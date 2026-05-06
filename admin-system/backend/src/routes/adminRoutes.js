@@ -35,6 +35,17 @@ router.get(
 );
 
 router.get(
+  "/temperature-logs",
+  asyncHandler(async (req, res) => {
+    const logs = await listAuditLogs({
+      ...req.query,
+      actionType: "TEMPERATURE",
+    });
+    res.json({ data: logs.rows, meta: logs });
+  }),
+);
+
+router.get(
   "/users",
   asyncHandler(async (req, res) => {
     const users = await listUsers();
