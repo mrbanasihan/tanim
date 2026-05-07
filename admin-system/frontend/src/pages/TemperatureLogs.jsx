@@ -94,6 +94,14 @@ const TemperatureLogs = () => {
     loadLogs(page);
   }, [page, search]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadLogs(page);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [page, search]);
+
   const summary = useMemo(() => {
     const counts = {
       normal: 0,

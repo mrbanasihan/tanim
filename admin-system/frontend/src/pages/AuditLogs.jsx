@@ -53,6 +53,14 @@ const AuditLogs = () => {
     loadLogs(page);
   }, [page, search, actionType]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadLogs(page);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [page, search, actionType]);
+
   const getActionClassName = (value) => {
     const normalized = String(value || "").toLowerCase();
 

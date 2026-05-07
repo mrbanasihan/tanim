@@ -166,6 +166,57 @@ const recordAuditLog = async ({
   );
 };
 
+let temperatureLogTableReadyPromise;
+
+const ensureTemperatureLogTable = async () => {
+  if (!temperatureLogTableReadyPromise) {
+    temperatureLogTableReadyPromise = db
+      .query(
+        `
+      CREATE TABLE IF NOT EXISTS temperature_log (
+        temp_log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sensor_id UUID,
+        room_id UUID,
+        payload JSONB NOT NULL,
+        logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `,
+      )
+      .then(() =>
+        db.query(
+          `CREATE INDEX IF NOT EXISTS idx_temperature_log_logged_at ON temperature_log(logged_at DESC)`,
+        ),
+      )
+      .then(() =>
+        db.query(
+          `CREATE INDEX IF NOT EXISTS idx_temperature_log_sensor_room ON temperature_log(sensor_id, room_id)`,
+        ),
+      )
+      .catch((error) => {
+        temperatureLogTableReadyPromise = null;
+        throw error;
+      });
+  }
+
+  return temperatureLogTableReadyPromise;
+};
+
+const recordTemperatureLog = async ({
+  sensorId = null,
+  roomId = null,
+  payload,
+}) => {
+  await ensureTemperatureLogTable();
+
+  await db.query(
+    `
+      INSERT INTO temperature_log (sensor_id, room_id, payload)
+      VALUES ($1, $2, $3)
+    `,
+    [sensorId, roomId, payload],
+  );
+};
+
 const recordAuditLogOnce = async ({
   actionType,
   actor,
@@ -209,9 +260,12 @@ const listAuditLogs = async ({
 
   const normalizedPageSize = Number(pageSize || limit) || 10;
   const normalizedPage = Number(page) || 1;
-  const normalizedOffset = Number.isFinite(Number(offset))
-    ? Number(offset)
-    : (normalizedPage - 1) * normalizedPageSize;
+  const hasOffset =
+    offset !== undefined && offset !== null && String(offset).trim() !== "";
+  const normalizedOffset =
+    hasOffset && Number.isFinite(Number(offset))
+      ? Number(offset)
+      : (normalizedPage - 1) * normalizedPageSize;
 
   if (search) {
     values.push(`%${search}%`);
@@ -287,6 +341,78 @@ const listAuditLogs = async ({
 
   return {
     rows,
+    total,
+    page: Math.floor(normalizedOffset / normalizedPageSize) + 1,
+    pageSize: normalizedPageSize,
+    totalPages: total === 0 ? 0 : Math.ceil(total / normalizedPageSize),
+  };
+};
+
+const listTemperatureLogs = async ({
+  search = "",
+  limit = 10,
+  offset,
+  page,
+  pageSize,
+}) => {
+  await ensureTemperatureLogTable();
+
+  const conditions = [];
+  const values = [];
+
+  const normalizedPageSize = Number(pageSize || limit) || 10;
+  const normalizedPage = Number(page) || 1;
+  const hasOffset =
+    offset !== undefined && offset !== null && String(offset).trim() !== "";
+  const normalizedOffset =
+    hasOffset && Number.isFinite(Number(offset))
+      ? Number(offset)
+      : (normalizedPage - 1) * normalizedPageSize;
+
+  if (search) {
+    values.push(`%${search}%`);
+    const param = values.length;
+    conditions.push(
+      `(COALESCE(sensor_id::text, '') ILIKE $${param} OR COALESCE(room_id::text, '') ILIKE $${param} OR COALESCE(payload::text, '') ILIKE $${param})`,
+    );
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countResult = await db.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM temperature_log
+      ${whereClause}
+    `,
+    values,
+  );
+
+  values.push(normalizedPageSize);
+  const limitParam = values.length;
+  values.push(normalizedOffset);
+  const offsetParam = values.length;
+
+  const result = await db.query(
+    `
+      SELECT
+        temp_log_id AS audit_id,
+        payload,
+        logged_at
+      FROM temperature_log
+      ${whereClause}
+      ORDER BY logged_at DESC
+      LIMIT $${limitParam}
+      OFFSET $${offsetParam}
+    `,
+    values,
+  );
+
+  const total = Number(countResult.rows[0]?.total || 0);
+
+  return {
+    rows: result.rows,
     total,
     page: Math.floor(normalizedOffset / normalizedPageSize) + 1,
     pageSize: normalizedPageSize,
@@ -837,7 +963,9 @@ const deleteRoom = async (roomId, actor = "admin-system") => {
 module.exports = {
   recordAuditLog,
   recordAuditLogOnce,
+  recordTemperatureLog,
   listAuditLogs,
+  listTemperatureLogs,
   listUsers,
   createUser,
   updateUser,

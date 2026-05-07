@@ -3,7 +3,7 @@ const { randomUUID } = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
-const { recordAuditLog } = require("./auditService");
+const { recordTemperatureLog } = require("./auditService");
 const { classifyStatus } = require("./temperatureClassifier");
 
 const getBrokers = () =>
@@ -184,9 +184,9 @@ const startTemperatureProcessor = async () => {
       const status = classifyStatus(temp, optimal, start, end);
 
       try {
-        await recordAuditLog({
-          actionType: "TEMPERATURE",
-          actor: "admin-temperature-processor",
+        await recordTemperatureLog({
+          sensorId,
+          roomId,
           payload: {
             entity: "temperature_reading",
             event_id: event.event_id || event.source_event_id || null,
@@ -202,7 +202,6 @@ const startTemperatureProcessor = async () => {
             source: event.source || "tanim.temperature",
             recorded_at: new Date().toISOString(),
           },
-          sourceEventId: null,
         });
       } catch (err) {
         console.error(
