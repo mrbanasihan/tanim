@@ -14,19 +14,26 @@ const AuditLogs = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
-  const pageRef = useRef(page);
+  const searchRef = useRef(search);
+  const actionTypeRef = useRef(actionType);
+
+  // Keep refs in sync
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
 
   useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
+    actionTypeRef.current = actionType;
+  }, [actionType]);
 
-  const loadLogs = async (nextPage = page) => {
+  const loadLogs = async (pageToLoad) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (actionType) params.set("actionType", actionType);
-      params.set("page", String(nextPage));
+      if (searchRef.current) params.set("search", searchRef.current);
+      if (actionTypeRef.current)
+        params.set("actionType", actionTypeRef.current);
+      params.set("page", String(pageToLoad));
       params.set("pageSize", String(pageSize));
 
       const response = await api.get(`/admin/audit-logs?${params.toString()}`);
@@ -35,14 +42,14 @@ const AuditLogs = () => {
         response.data.meta || {
           total: 0,
           totalPages: 0,
-          page: nextPage,
+          page: pageToLoad,
           pageSize,
         },
       );
       setError("");
     } catch (err) {
       setLogs([]);
-      setMeta({ total: 0, totalPages: 0, page: nextPage, pageSize });
+      setMeta({ total: 0, totalPages: 0, page: pageToLoad, pageSize });
       setError(
         getErrorMessage(
           err,
@@ -54,17 +61,32 @@ const AuditLogs = () => {
     }
   };
 
+  // Load logs when page changes
   useEffect(() => {
     loadLogs(page);
-  }, [page, search, actionType]);
+  }, [page]);
 
+  // Load logs when search or actionType change (reset to page 1)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        loadLogs(1);
+      }
+    }, 300); // Debounce to avoid multiple calls
+
+    return () => clearTimeout(timeoutId);
+  }, [search, actionType]);
+
+  // Auto-refresh every 60 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
-      loadLogs(pageRef.current);
+      loadLogs(page);
     }, 60000);
 
     return () => clearInterval(intervalId);
-  }, [search, actionType]);
+  }, [page]);
 
   const getActionClassName = (value) => {
     const normalized = String(value || "").toLowerCase();
@@ -117,14 +139,17 @@ const AuditLogs = () => {
 
   const onSearchSubmit = (event) => {
     event.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
+    const newSearch = searchInput.trim();
+    setSearch(newSearch);
+    // Page reset will happen in the useEffect watching search
   };
 
   const goToPage = (nextPage) => {
     const totalPages = meta.totalPages || 1;
     const boundedPage = Math.max(1, Math.min(totalPages, nextPage));
-    setPage(boundedPage);
+    if (boundedPage !== page) {
+      setPage(boundedPage);
+    }
   };
 
   const formatPayload = (payload) => {
@@ -152,8 +177,8 @@ const AuditLogs = () => {
           className="select"
           value={actionType}
           onChange={(e) => {
-            setPage(1);
             setActionType(e.target.value);
+            // Page reset will happen in the useEffect watching actionType
           }}
         >
           <option value="">All actions</option>
