@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
@@ -22,6 +22,11 @@ const TemperatureLogs = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+  const pageRef = useRef(page);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   const parsePayload = (payload) => {
     if (!payload) return {};
@@ -96,11 +101,11 @@ const TemperatureLogs = () => {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      loadLogs(page);
+      loadLogs(pageRef.current);
     }, 60000);
 
     return () => clearInterval(intervalId);
-  }, [page, search]);
+  }, [search]);
 
   const summary = useMemo(() => {
     const counts = {

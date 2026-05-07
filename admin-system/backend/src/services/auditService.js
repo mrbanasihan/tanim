@@ -293,6 +293,8 @@ const listAuditLogs = async ({
     );
   }
 
+  conditions.push(`a.action_type <> 'TEMPERATURE'`);
+
   values.push(normalizedPageSize);
   const limitParam = values.length;
   values.push(normalizedOffset);
