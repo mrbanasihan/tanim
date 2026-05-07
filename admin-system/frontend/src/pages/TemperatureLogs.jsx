@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 10;
+const pageSize = 20;
 const statusOrder = ["normal", "warning", "critical", "danger"];
 
 const statusLabels = {
@@ -141,10 +141,6 @@ const TemperatureLogs = () => {
     <div className="panel">
       <div className="hero">
         <h2>Temperature Logs</h2>
-        <p>
-          Every temperature reading captured by the admin processor, with
-          warning, critical, and danger rows color-coded for quick review.
-        </p>
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}

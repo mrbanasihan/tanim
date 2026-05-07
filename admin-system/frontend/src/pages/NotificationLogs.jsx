@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 10;
+const pageSize = 20;
 
 const NotificationLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -107,7 +107,6 @@ const NotificationLogs = () => {
     <div className="panel">
       <div className="hero">
         <h2>Notification Logs</h2>
-        <p>Kafka-backed notification events, refreshed every minute.</p>
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}

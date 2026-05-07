@@ -178,8 +178,9 @@
 .toolbar {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-bottom: 16px;
+  align-items: center;
 }
 
 .audit-toolbar {
@@ -205,6 +206,17 @@
   background: white;
   min-width: 0;
   width: 100%;
+}
+
+.toolbar .input,
+.toolbar .select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.toolbar .button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .input:focus,

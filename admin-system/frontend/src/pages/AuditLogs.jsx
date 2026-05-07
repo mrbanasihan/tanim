@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 10;
+const pageSize = 20;
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -161,7 +161,6 @@ const AuditLogs = () => {
     <div className="panel">
       <div className="hero">
         <h2>Audit Logs</h2>
-        <p>View create, update, and soft-delete activity captured in TANIM.</p>
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
