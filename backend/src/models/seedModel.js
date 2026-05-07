@@ -172,6 +172,35 @@ const SeedModel = {
     try {
       await client.query("BEGIN");
 
+      const existingResult = await client.query(
+        `
+          SELECT seed_id, gross_weight, cleaned_quantity, current_quantity
+          FROM seed_lot
+          WHERE seed_id = $1
+          FOR UPDATE
+        `,
+        [seedId],
+      );
+
+      const existingSeed = existingResult.rows[0];
+      if (!existingSeed) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+
+      const previousBaseline =
+        existingSeed.cleaned_quantity ?? existingSeed.gross_weight ?? 0;
+      const nextBaseline = data.cleaned_quantity ?? data.gross_weight ?? 0;
+      const consumedQuantity = previousBaseline - existingSeed.current_quantity;
+
+      if (nextBaseline < consumedQuantity) {
+        throw new Error(
+          "Updated cleaned weight cannot be less than the quantity already transacted",
+        );
+      }
+
+      const nextCurrentQuantity = nextBaseline - consumedQuantity;
+
       const query = `
         UPDATE seed_lot
         SET project_id = $1,
@@ -196,7 +225,7 @@ const SeedModel = {
         data.moisture_content,
         data.gross_weight || 0,
         data.cleaned_quantity || null,
-        data.cleaned_quantity || data.gross_weight || 0,
+        nextCurrentQuantity,
         null,
         data.area_planted || null,
         data.remarks || null,

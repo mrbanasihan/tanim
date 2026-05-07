@@ -115,15 +115,44 @@ const NotificationModel = {
       ON CONFLICT (source_event_id) DO NOTHING
       RETURNING *
     `;
-    const result = await db.query(query, [
-      userId,
-      notificationType,
-      message,
-      seedId,
-      createdAt,
-      sourceEventId,
-    ]);
-    return result.rows[0];
+
+    try {
+      const result = await db.query(query, [
+        userId,
+        notificationType,
+        message,
+        seedId,
+        createdAt,
+        sourceEventId,
+      ]);
+      return result.rows[0];
+    } catch (err) {
+      // If the insert failed due to a foreign key constraint on user_id (user not present
+      // in this system), retry inserting the notification with a NULL user_id so the
+      // notification can still be recorded as a system-level event.
+      // Postgres foreign key violation error code is '23503'.
+      const pgForeignKeyViolation = err && err.code === "23503";
+      if (pgForeignKeyViolation) {
+        const fallbackQuery = `
+          INSERT INTO notification (
+            user_id, notification_type, message, seed_id, is_read, created_at, source_event_id
+          )
+          VALUES (NULL, $1, $2, $3, false, COALESCE($4, NOW()), $5)
+          ON CONFLICT (source_event_id) DO NOTHING
+          RETURNING *
+        `;
+        const fallbackResult = await db.query(fallbackQuery, [
+          notificationType,
+          message,
+          seedId,
+          createdAt,
+          sourceEventId,
+        ]);
+        return fallbackResult.rows[0];
+      }
+
+      throw err;
+    }
   },
 };
 
