@@ -2,6 +2,7 @@ const express = require("express");
 const {
   listAuditLogs,
   listTemperatureLogs,
+  listNotificationLogs,
   listUsers,
   createUser,
   updateUser,
@@ -39,6 +40,14 @@ router.get(
   "/temperature-logs",
   asyncHandler(async (req, res) => {
     const logs = await listTemperatureLogs(req.query);
+    res.json({ data: logs.rows, meta: logs });
+  }),
+);
+
+router.get(
+  "/notification-logs",
+  asyncHandler(async (req, res) => {
+    const logs = await listNotificationLogs(req.query);
     res.json({ data: logs.rows, meta: logs });
   }),
 );

@@ -1,4 +1,5 @@
 const db = require("../services/db");
+const NotificationModel = require("./notificationModel");
 
 const GerminationRecordModel = {
   async getAll(filters = {}) {
@@ -97,20 +98,13 @@ const GerminationRecordModel = {
     const seedResult = await db.query(seedQuery, [seedId]);
     const seedInfo = seedResult.rows[0];
 
-    // Create notifications for each user
+    // Publish notifications for each user to Kafka
     for (const user of usersResult.rows) {
-      const notifyQuery = `
-        INSERT INTO notification (
-          user_id, notification_type, message, seed_id, is_read, created_at
-        )
-        VALUES ($1, $2, $3, $4, false, NOW())
-      `;
-      await db.query(notifyQuery, [
+      await NotificationModel.createGerminationReminder(
         user.user_id,
-        "germination_scheduled",
-        `Germination test scheduled for ${seedInfo.batch_name} on ${nextDate}`,
         seedId,
-      ]);
+        `Germination test scheduled for ${seedInfo.batch_name} on ${nextDate}`,
+      );
     }
   },
 };

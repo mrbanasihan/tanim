@@ -1,4 +1,10 @@
 const db = require("../services/db");
+const {
+  KAFKA_EVENTS,
+  KAFKA_TOPICS,
+  KAFKA_SOURCE_SYSTEM,
+} = require("../constants/kafka");
+const { createOutboxEvent } = require("../services/kafka/outboxService");
 
 const NotificationModel = {
   async getByUserId(userId, filters = {}) {
@@ -60,19 +66,62 @@ const NotificationModel = {
     return result.rows[0];
   },
 
-  async createGerminationReminder(userId, seedId, message) {
+  async createNotificationEvent({
+    userId,
+    notificationType,
+    message,
+    seedId = null,
+    payload = {},
+    client,
+  }) {
+    return createOutboxEvent({
+      eventType: KAFKA_EVENTS.NOTIFICATION_CREATED,
+      topic: KAFKA_TOPICS.ALERTS,
+      payload: {
+        user_id: userId,
+        notification_type: notificationType,
+        message,
+        seed_id: seedId,
+        ...payload,
+      },
+      sourceSystem: KAFKA_SOURCE_SYSTEM,
+      client,
+    });
+  },
+
+  async createGerminationReminder(userId, seedId, message, client) {
+    return this.createNotificationEvent({
+      userId,
+      notificationType: "germination_reminder",
+      message,
+      seedId,
+      client,
+    });
+  },
+
+  async createFromKafkaEvent({
+    userId,
+    notificationType,
+    message,
+    seedId = null,
+    sourceEventId = null,
+    createdAt = null,
+  }) {
     const query = `
       INSERT INTO notification (
-        user_id, notification_type, message, seed_id, is_read, created_at
+        user_id, notification_type, message, seed_id, is_read, created_at, source_event_id
       )
-      VALUES ($1, $2, $3, $4, false, NOW())
+      VALUES ($1, $2, $3, $4, false, COALESCE($5, NOW()), $6)
+      ON CONFLICT (source_event_id) DO NOTHING
       RETURNING *
     `;
     const result = await db.query(query, [
       userId,
-      "germination_reminder",
+      notificationType,
       message,
       seedId,
+      createdAt,
+      sourceEventId,
     ]);
     return result.rows[0];
   },

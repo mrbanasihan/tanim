@@ -1,4 +1,4 @@
-const { recordAuditLogOnce } = require("./auditService");
+const { recordAuditLogOnce, recordNotificationLog } = require("./auditService");
 
 const EVENT_TYPE_TO_ACTION = {
   SeedRegisteredEvent: "CREATE",
@@ -68,8 +68,32 @@ const handleTanimEvent = async (rawEvent, topic) => {
   };
 };
 
+const handleNotificationEvent = async (rawEvent, topic) => {
+  const event = normalizeEvent(rawEvent, topic);
+  const payload = event.payload || {};
+
+  await recordNotificationLog({
+    sourceEventId: event.event_id || null,
+    notificationType:
+      payload.notification_type || event.event_type || "notification",
+    userId: payload.user_id || null,
+    message: payload.message || JSON.stringify(payload),
+    payload,
+    createdAt: event.emitted_at || null,
+  });
+
+  return {
+    inserted: true,
+    actionType: event.event_type || "NOTIFICATION",
+    actor: payload.user_id || event.actor || "system",
+    payload,
+    event,
+  };
+};
+
 module.exports = {
   handleTanimEvent,
+  handleNotificationEvent,
   EVENT_TYPE_TO_ACTION,
   EVENT_TYPE_TO_ENTITY,
 };

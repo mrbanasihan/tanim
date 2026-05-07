@@ -1,6 +1,7 @@
 const db = require("../../services/db");
 const { KAFKA_EVENTS } = require("../../constants/kafka");
 const { handleTemperatureEscalation } = require("./temperatureFeedbackHandler");
+const NotificationModel = require("../../models/notificationModel");
 
 const ensureEventIdempotency = async (eventId) => {
   const [auditResult, ipbResult] = await Promise.all([
@@ -89,6 +90,19 @@ const handleLowStockAlertEvent = async (event) => {
   ]);
 };
 
+const handleNotificationCreatedEvent = async (event) => {
+  const payload = event.payload || {};
+
+  await NotificationModel.createFromKafkaEvent({
+    userId: payload.user_id,
+    notificationType: payload.notification_type,
+    message: payload.message,
+    seedId: payload.seed_id || null,
+    sourceEventId: event.event_id || null,
+    createdAt: event.emitted_at || null,
+  });
+};
+
 const handleEvent = async (event) => {
   switch (event.event_type) {
     case KAFKA_EVENTS.SEED_REGISTERED:
@@ -100,6 +114,8 @@ const handleEvent = async (event) => {
       return handleTransactionEvent(event);
     case KAFKA_EVENTS.LOW_STOCK_ALERT:
       return handleLowStockAlertEvent(event);
+    case KAFKA_EVENTS.NOTIFICATION_CREATED:
+      return handleNotificationCreatedEvent(event);
     case KAFKA_EVENTS.TEMPERATURE_ESCALATION:
       return handleTemperatureEscalation(event);
     default:

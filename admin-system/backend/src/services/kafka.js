@@ -1,7 +1,10 @@
 const { Kafka, logLevel } = require("kafkajs");
 const fs = require("fs");
 const path = require("path");
-const { handleTanimEvent } = require("./kafkaEventHandlers");
+const {
+  handleTanimEvent,
+  handleNotificationEvent,
+} = require("./kafkaEventHandlers");
 
 const KAFKA_TOPICS = ["tanim.seeds", "tanim.transactions", "tanim.alerts"];
 
@@ -167,7 +170,10 @@ const startKafkaConsumer = async () => {
 
       try {
         const parsed = JSON.parse(message.value.toString("utf8"));
-        const handled = await handleTanimEvent(parsed, topic);
+        const handled =
+          parsed.event_type === "NotificationCreatedEvent"
+            ? await handleNotificationEvent(parsed, topic)
+            : await handleTanimEvent(parsed, topic);
 
         lastEvent = {
           topic,

@@ -5,6 +5,7 @@
  */
 
 const db = require("../../services/db");
+const NotificationModel = require("../../models/notificationModel");
 
 /**
  * Check if event has already been processed (idempotency)
@@ -19,7 +20,7 @@ const ensureEventIdempotency = async (sourceEventId) => {
 };
 
 /**
- * Create or get a notification for the temperature escalation
+ * Create audit entry and publish user notifications for the escalation.
  */
 const createNotification = async (payload, sourceEventId) => {
   // Check idempotency
@@ -52,32 +53,29 @@ const createNotification = async (payload, sourceEventId) => {
     ],
   );
 
-  // Create or update notification
-  const notificationTitle =
-    payload.status === "danger"
-      ? `🔴 DANGER: Temperature Alert`
-      : `🟠 CRITICAL: Temperature Alert`;
-
   const notificationMessage = `Room temperature sensor (${payload.sensor_id}) reported ${payload.status.toUpperCase()} status. Current reading requires immediate attention.`;
 
-  // Insert notification (assume notifications table exists with room_id)
-  try {
-    await db.query(
-      `
-        INSERT INTO notification (room_id, title, message, is_read, created_at)
-        VALUES ($1, $2, $3, false, CURRENT_TIMESTAMP)
-      `,
-      [payload.room_id, notificationTitle, notificationMessage],
-    );
-    console.log(
-      `[FeedbackHandler] Notification created for room ${payload.room_id}`,
-    );
-  } catch (error) {
-    // Table might not exist or have different schema - log but don't fail
-    console.warn(
-      `[FeedbackHandler] Could not create notification:`,
-      error.message,
-    );
+  const recipients = await db.query(
+    `
+      SELECT user_id
+      FROM "user"
+      WHERE role IN ('admin', 'researcher') AND is_active = true
+    `,
+  );
+
+  for (const recipient of recipients.rows) {
+    await NotificationModel.createNotificationEvent({
+      userId: recipient.user_id,
+      notificationType: "temperature_alert",
+      message: notificationMessage,
+      payload: {
+        room_id: payload.room_id,
+        sensor_id: payload.sensor_id,
+        status: payload.status,
+        escalation_level: payload.escalation_level,
+        source: "admin-system",
+      },
+    });
   }
 };
 

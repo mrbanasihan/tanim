@@ -217,6 +217,60 @@ const recordTemperatureLog = async ({
   );
 };
 
+let notificationLogTableReadyPromise;
+
+const ensureNotificationLogTable = async () => {
+  if (!notificationLogTableReadyPromise) {
+    notificationLogTableReadyPromise = db
+      .query(
+        `
+      CREATE TABLE IF NOT EXISTS notification_log (
+        notification_log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_event_id UUID UNIQUE,
+        notification_type VARCHAR(100) NOT NULL,
+        user_id UUID,
+        message TEXT NOT NULL,
+        payload JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `,
+      )
+      .then(() =>
+        db.query(
+          `CREATE INDEX IF NOT EXISTS idx_notification_log_created_at ON notification_log(created_at DESC)`,
+        ),
+      )
+      .catch((error) => {
+        notificationLogTableReadyPromise = null;
+        throw error;
+      });
+  }
+
+  return notificationLogTableReadyPromise;
+};
+
+const recordNotificationLog = async ({
+  sourceEventId = null,
+  notificationType,
+  userId = null,
+  message,
+  payload,
+  createdAt = null,
+}) => {
+  await ensureNotificationLogTable();
+
+  await db.query(
+    `
+      INSERT INTO notification_log (
+        source_event_id, notification_type, user_id, message, payload, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, COALESCE($6, NOW()))
+      ON CONFLICT (source_event_id) DO NOTHING
+    `,
+    [sourceEventId, notificationType, userId, message, payload, createdAt],
+  );
+};
+
 const recordAuditLogOnce = async ({
   actionType,
   actor,
@@ -405,6 +459,82 @@ const listTemperatureLogs = async ({
       FROM temperature_log
       ${whereClause}
       ORDER BY logged_at DESC
+      LIMIT $${limitParam}
+      OFFSET $${offsetParam}
+    `,
+    values,
+  );
+
+  const total = Number(countResult.rows[0]?.total || 0);
+
+  return {
+    rows: result.rows,
+    total,
+    page: Math.floor(normalizedOffset / normalizedPageSize) + 1,
+    pageSize: normalizedPageSize,
+    totalPages: total === 0 ? 0 : Math.ceil(total / normalizedPageSize),
+  };
+};
+
+const listNotificationLogs = async ({
+  search = "",
+  limit = 10,
+  offset,
+  page,
+  pageSize,
+}) => {
+  await ensureNotificationLogTable();
+
+  const conditions = [];
+  const values = [];
+
+  const normalizedPageSize = Number(pageSize || limit) || 10;
+  const normalizedPage = Number(page) || 1;
+  const hasOffset =
+    offset !== undefined && offset !== null && String(offset).trim() !== "";
+  const normalizedOffset =
+    hasOffset && Number.isFinite(Number(offset))
+      ? Number(offset)
+      : (normalizedPage - 1) * normalizedPageSize;
+
+  if (search) {
+    values.push(`%${search}%`);
+    const param = values.length;
+    conditions.push(
+      `(COALESCE(notification_type, '') ILIKE $${param} OR COALESCE(message, '') ILIKE $${param} OR COALESCE(payload::text, '') ILIKE $${param})`,
+    );
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countResult = await db.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM notification_log
+      ${whereClause}
+    `,
+    values,
+  );
+
+  values.push(normalizedPageSize);
+  const limitParam = values.length;
+  values.push(normalizedOffset);
+  const offsetParam = values.length;
+
+  const result = await db.query(
+    `
+      SELECT
+        notification_log_id,
+        source_event_id,
+        notification_type,
+        user_id,
+        message,
+        payload,
+        created_at
+      FROM notification_log
+      ${whereClause}
+      ORDER BY created_at DESC
       LIMIT $${limitParam}
       OFFSET $${offsetParam}
     `,
@@ -966,8 +1096,10 @@ module.exports = {
   recordAuditLog,
   recordAuditLogOnce,
   recordTemperatureLog,
+  recordNotificationLog,
   listAuditLogs,
   listTemperatureLogs,
+  listNotificationLogs,
   listUsers,
   createUser,
   updateUser,

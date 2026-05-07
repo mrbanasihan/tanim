@@ -13,6 +13,7 @@ const KAFKA_EVENTS = {
   SEED_DISPOSAL: "SeedDisposalEvent",
   LOW_STOCK_ALERT: "LowStockAlertEvent",
   TEMPERATURE_ESCALATION: "TemperatureEscalation",
+  NOTIFICATION_CREATED: "NotificationCreatedEvent",
 };
 
 const KAFKA_STATUS = {
