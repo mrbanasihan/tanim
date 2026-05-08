@@ -31,7 +31,11 @@ const SeedController = {
       res.json(seeds);
     } catch (error) {
       console.error("Get seeds error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({
+        error: "Internal server error",
+        message: error.message || "Unknown",
+        detail: error.detail || null,
+      });
     }
   },
 
@@ -48,7 +52,11 @@ const SeedController = {
       res.json(seed);
     } catch (error) {
       console.error("Get seed error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({
+        error: "Internal server error",
+        message: error.message || "Unknown",
+        detail: error.detail || null,
+      });
     }
   },
 

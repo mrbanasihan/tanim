@@ -24,9 +24,10 @@ const ensureSeedLotColumns = async () => {
 
 const SeedModel = {
   async getAll(filters = {}) {
-    await ensureSeedLotColumns();
+    try {
+      await ensureSeedLotColumns();
 
-    let query = `
+      let query = `
             SELECT s.*, p.project_name as project_name, r.room_name as storage_area_name
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
@@ -34,61 +35,70 @@ const SeedModel = {
       WHERE s.is_active = true
         `;
 
-    const params = [];
-    let paramIndex = 1;
+      const params = [];
+      let paramIndex = 1;
 
-    if (filters.crop_type) {
-      query += ` AND s.crop_type = $${paramIndex++}`;
-      params.push(filters.crop_type);
+      if (filters.crop_type) {
+        query += ` AND s.crop_type = $${paramIndex++}`;
+        params.push(filters.crop_type);
+      }
+
+      if (filters.variety) {
+        query += ` AND s.variety = $${paramIndex++}`;
+        params.push(filters.variety);
+      }
+
+      if (filters.project_id) {
+        query += ` AND s.project_id = $${paramIndex++}`;
+        params.push(filters.project_id);
+      }
+
+      if (filters.search) {
+        query += ` AND (s.batch_name ILIKE $${paramIndex++} OR s.crop_type ILIKE $${paramIndex++} OR s.variety ILIKE $${paramIndex++})`;
+        params.push(
+          `%${filters.search}%`,
+          `%${filters.search}%`,
+          `%${filters.search}%`,
+        );
+      }
+
+      query += ` ORDER BY s.created_at DESC`;
+
+      if (filters.limit) {
+        query += ` LIMIT $${paramIndex++}`;
+        params.push(filters.limit);
+      }
+
+      if (filters.offset) {
+        query += ` OFFSET $${paramIndex++}`;
+        params.push(filters.offset);
+      }
+
+      const result = await db.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error("SeedModel.getAll error:", error);
+      throw error;
     }
-
-    if (filters.variety) {
-      query += ` AND s.variety = $${paramIndex++}`;
-      params.push(filters.variety);
-    }
-
-    if (filters.project_id) {
-      query += ` AND s.project_id = $${paramIndex++}`;
-      params.push(filters.project_id);
-    }
-
-    if (filters.search) {
-      query += ` AND (s.batch_name ILIKE $${paramIndex++} OR s.crop_type ILIKE $${paramIndex++} OR s.variety ILIKE $${paramIndex++})`;
-      params.push(
-        `%${filters.search}%`,
-        `%${filters.search}%`,
-        `%${filters.search}%`,
-      );
-    }
-
-    query += ` ORDER BY s.created_at DESC`;
-
-    if (filters.limit) {
-      query += ` LIMIT $${paramIndex++}`;
-      params.push(filters.limit);
-    }
-
-    if (filters.offset) {
-      query += ` OFFSET $${paramIndex++}`;
-      params.push(filters.offset);
-    }
-
-    const result = await db.query(query, params);
-    return result.rows;
   },
 
   async getById(seedId) {
-    await ensureSeedLotColumns();
+    try {
+      await ensureSeedLotColumns();
 
-    const query = `
-        SELECT s.*, p.project_name as project_name, r.room_name as storage_area_name
-        FROM seed_lot s
-        LEFT JOIN project p ON s.project_id = p.project_id
-        LEFT JOIN room r ON s.storage_area = r.room_id
-        WHERE s.seed_id = $1 AND s.is_active = true
-      `;
-    const result = await db.query(query, [seedId]);
-    return result.rows[0];
+      const query = `
+            SELECT s.*, p.project_name as project_name, r.room_name as storage_area_name
+            FROM seed_lot s
+            LEFT JOIN project p ON s.project_id = p.project_id
+            LEFT JOIN room r ON s.storage_area = r.room_id
+            WHERE s.seed_id = $1 AND s.is_active = true
+        `;
+      const result = await db.query(query, [seedId]);
+      return result.rows[0];
+    } catch (error) {
+      console.error("SeedModel.getById error:", error);
+      throw error;
+    }
   },
 
   async create(data) {
