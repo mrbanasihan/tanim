@@ -3,3 +3,4 @@ readme.md
 /service*
 *.sql
 *.yml
+test*
