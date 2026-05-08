@@ -270,7 +270,7 @@ const SeedDetail = () => {
                 Storage Area
               </label>
               <p className="text-lg font-medium text-slate-900">
-                {seed.storage_area || "-"}
+                {seed.storage_area_name || seed.storage_area || "-"}
               </p>
             </div>
             {seed.project_name && (

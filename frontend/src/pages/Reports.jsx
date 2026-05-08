@@ -182,7 +182,7 @@ const Reports = () => {
   const getStorageUtilizationData = () => {
     const storageData = {};
     reportData.seeds.forEach((seed) => {
-      const area = seed.storage_area || "Unassigned";
+      const area = seed.storage_area_name || seed.storage_area || "Unassigned";
       const quantity = Number(seed.current_quantity) || 0;
       storageData[area] = (storageData[area] || 0) + quantity;
     });
