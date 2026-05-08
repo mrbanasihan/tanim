@@ -10,6 +10,7 @@ const SeedDetail = () => {
   const [transactions, setTransactions] = useState([]);
   const [germinationRecords, setGerminationRecords] = useState([]);
   const [latestGermination, setLatestGermination] = useState(null);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +23,12 @@ const SeedDetail = () => {
     id: transaction.id || transaction.transaction_id,
     seed_id: transaction.seed_id || transaction.seed_lot_id,
   });
+
+  const storageAreaName =
+    rooms.find((room) => room.room_id === seed?.storage_area)?.room_name ||
+    seed?.storage_area_name ||
+    seed?.storage_area ||
+    "-";
 
   useEffect(() => {
     fetchSeedData();
@@ -49,6 +56,8 @@ const SeedDetail = () => {
 
       const seedResponse = await api.get(`/seeds/${id}`);
       setSeed(seedResponse.data);
+      const roomsResponse = await api.get("/rooms");
+      setRooms(Array.isArray(roomsResponse.data) ? roomsResponse.data : []);
       if (!silent) {
         setLoading(false);
       }
@@ -270,7 +279,7 @@ const SeedDetail = () => {
                 Storage Area
               </label>
               <p className="text-lg font-medium text-slate-900">
-                {seed.storage_area_name || seed.storage_area || "-"}
+                {storageAreaName}
               </p>
             </div>
             {seed.project_name && (

@@ -35,6 +35,7 @@ const Reports = () => {
     transactions: [],
     projects: [],
   });
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -102,13 +103,17 @@ const Reports = () => {
       setError(null);
       setLoading(true);
       const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
-      const [seedsRes, transactionsRes, projectsRes] = await Promise.all([
-        api.get("/seeds"),
-        api.get("/transactions"),
-        api.get(
-          selectedGroup ? `/projects?crop_group=${selectedGroup}` : "/projects",
-        ),
-      ]);
+      const [seedsRes, transactionsRes, projectsRes, roomsRes] =
+        await Promise.all([
+          api.get("/seeds"),
+          api.get("/transactions"),
+          api.get(
+            selectedGroup
+              ? `/projects?crop_group=${selectedGroup}`
+              : "/projects",
+          ),
+          api.get("/rooms"),
+        ]);
 
       const filteredSeeds = filterByCropGroup(
         seedsRes.data || [],
@@ -126,6 +131,7 @@ const Reports = () => {
         transactions: filteredTransactions,
         projects: projectsRes.data || [],
       });
+      setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
 
       console.log("Report data loaded:", {
         seeds: (seedsRes.data || []).length,
@@ -182,7 +188,11 @@ const Reports = () => {
   const getStorageUtilizationData = () => {
     const storageData = {};
     reportData.seeds.forEach((seed) => {
-      const area = seed.storage_area_name || seed.storage_area || "Unassigned";
+      const area =
+        rooms.find((room) => room.room_id === seed.storage_area)?.room_name ||
+        seed.storage_area_name ||
+        seed.storage_area ||
+        "Unassigned";
       const quantity = Number(seed.current_quantity) || 0;
       storageData[area] = (storageData[area] || 0) + quantity;
     });
