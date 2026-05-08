@@ -29,15 +29,7 @@ const SeedModel = {
 
       let query = `
             SELECT s.*, p.project_name as project_name,
-              CASE
-                WHEN to_regclass('public.room') IS NOT NULL THEN (
-                  SELECT room_name FROM room WHERE room_id::text = s.storage_area LIMIT 1
-                )
-                WHEN to_regclass('public.rooms') IS NOT NULL THEN (
-                  SELECT name FROM rooms WHERE room_id::text = s.storage_area LIMIT 1
-                )
-                ELSE NULL
-              END AS storage_area_name
+              s.storage_area AS storage_area_name
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
       WHERE s.is_active = true
@@ -96,15 +88,7 @@ const SeedModel = {
 
       const query = `
             SELECT s.*, p.project_name as project_name,
-              CASE
-                WHEN to_regclass('public.room') IS NOT NULL THEN (
-                  SELECT room_name FROM room WHERE room_id::text = s.storage_area LIMIT 1
-                )
-                WHEN to_regclass('public.rooms') IS NOT NULL THEN (
-                  SELECT name FROM rooms WHERE room_id::text = s.storage_area LIMIT 1
-                )
-                ELSE NULL
-              END AS storage_area_name
+              s.storage_area AS storage_area_name
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
             WHERE s.seed_id = $1 AND s.is_active = true
