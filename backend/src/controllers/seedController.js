@@ -71,6 +71,7 @@ const SeedController = {
             ? sanitizeOptionalNumber(req.body.cleaned_quantity)
             : null,
         area_planted: sanitizeTitleCase(req.body.area_planted),
+        storage_area: req.body.storage_area || null,
         remarks: sanitizeString(req.body.remarks),
       };
 
@@ -119,6 +120,7 @@ const SeedController = {
             ? sanitizeOptionalNumber(req.body.cleaned_quantity)
             : null,
         area_planted: sanitizeTitleCase(req.body.area_planted),
+        storage_area: req.body.storage_area || null,
         remarks: sanitizeString(req.body.remarks),
       };
 

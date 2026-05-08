@@ -225,22 +225,28 @@ const startTemperatureProcessor = async () => {
 
       const escalationLevel = status === "danger" ? 2 : 1;
 
-      const feedback = {
+      const feedbackEvent = {
         event_id: randomUUID(),
-        source_event_id: event.event_id || event.source_event_id || null,
-        sensor_id: sensorId,
-        room_id: roomId,
-        status,
-        escalation_level: escalationLevel,
-        timestamp: new Date().toISOString(),
-        source: "admin-system",
+        event_type: "TemperatureEscalation",
+        topic: process.env.ADMIN_FEEDBACK_TOPIC || "admin.temperature-feedback",
+        source_system: "admin-system",
+        emitted_at: new Date().toISOString(),
+        payload: {
+          source_event_id: event.event_id || event.source_event_id || null,
+          sensor_id: sensorId,
+          room_id: roomId,
+          status,
+          escalation_level: escalationLevel,
+          timestamp: new Date().toISOString(),
+          source: "admin-system",
+        },
       };
 
       try {
         await producer.send({
           topic:
             process.env.ADMIN_FEEDBACK_TOPIC || "admin.temperature-feedback",
-          messages: [{ key: sensorId, value: JSON.stringify(feedback) }],
+          messages: [{ key: sensorId, value: JSON.stringify(feedbackEvent) }],
         });
 
         console.log(

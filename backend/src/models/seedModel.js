@@ -16,6 +16,10 @@ const ensureSeedLotColumns = async () => {
     ALTER TABLE seed_lot
     ADD COLUMN IF NOT EXISTS area_planted VARCHAR(255)
   `);
+  await db.query(`
+    ALTER TABLE seed_lot
+    ADD COLUMN IF NOT EXISTS storage_area VARCHAR(255)
+  `);
 };
 
 const SeedModel = {
@@ -23,9 +27,10 @@ const SeedModel = {
     await ensureSeedLotColumns();
 
     let query = `
-            SELECT s.*, p.project_name as project_name
+            SELECT s.*, p.project_name as project_name, r.room_name as storage_area_name
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
+            LEFT JOIN room r ON s.storage_area = r.room_id
       WHERE s.is_active = true
         `;
 
@@ -76,11 +81,12 @@ const SeedModel = {
     await ensureSeedLotColumns();
 
     const query = `
-            SELECT s.*, p.project_name as project_name
-            FROM seed_lot s
-            LEFT JOIN project p ON s.project_id = p.project_id
-            WHERE s.seed_id = $1 AND s.is_active = true
-        `;
+        SELECT s.*, p.project_name as project_name, r.room_name as storage_area_name
+        FROM seed_lot s
+        LEFT JOIN project p ON s.project_id = p.project_id
+        LEFT JOIN room r ON s.storage_area = r.room_id
+        WHERE s.seed_id = $1 AND s.is_active = true
+      `;
     const result = await db.query(query, [seedId]);
     return result.rows[0];
   },
@@ -114,9 +120,9 @@ const SeedModel = {
             INSERT INTO seed_lot (
                 seed_id, project_id, batch_name, crop_type, variety, classification,
               moisture_content, gross_weight, cleaned_quantity, current_quantity,
-              date_received, area_planted, remarks, is_active, created_by, created_at
+              date_received, area_planted, storage_area, remarks, is_active, created_by, created_at
             )
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13, NOW())
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, $14, NOW())
             RETURNING *
       `;
       const result = await client.query(query, [
@@ -131,6 +137,7 @@ const SeedModel = {
         data.cleaned_quantity || data.gross_weight,
         null,
         data.area_planted || null,
+        data.storage_area || null,
         data.remarks || null,
         data.created_by,
       ]);
@@ -213,8 +220,9 @@ const SeedModel = {
             current_quantity = $8,
             date_received = $9,
             area_planted = $10,
-            remarks = $11
-        WHERE seed_id = $12
+            storage_area = $11,
+            remarks = $12
+        WHERE seed_id = $13
         RETURNING *
     `;
       const result = await client.query(query, [
@@ -228,6 +236,7 @@ const SeedModel = {
         nextCurrentQuantity,
         null,
         data.area_planted || null,
+        data.storage_area || null,
         data.remarks || null,
         seedId,
       ]);

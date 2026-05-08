@@ -6,7 +6,7 @@ const {
 } = require("../constants/kafka");
 const { createOutboxEvent } = require("../services/kafka/outboxService");
 
-const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD || 10);
+const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD || 2);
 
 const TransactionModel = {
   async getById(transactionId) {

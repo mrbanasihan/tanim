@@ -88,6 +88,49 @@ const handleLowStockAlertEvent = async (event) => {
     insertAuditLog("UPDATE", event),
     insertCentralRecord("system_log", event),
   ]);
+
+  const payload = event.payload || {};
+  const seedId = payload.seed_id || null;
+  const currentQuantity = payload.current_quantity;
+  const threshold = payload.threshold;
+
+  let batchName = "seed lot";
+  if (seedId) {
+    const seedResult = await db.query(
+      `SELECT batch_name FROM seed_lot WHERE seed_id = $1 LIMIT 1`,
+      [seedId],
+    );
+
+    if (seedResult.rowCount > 0 && seedResult.rows[0].batch_name) {
+      batchName = seedResult.rows[0].batch_name;
+    }
+  }
+
+  const notificationMessage = `Low stock alert: ${batchName} is at ${currentQuantity}kg (threshold: ${threshold}kg).`;
+
+  const recipients = await db.query(
+    `
+      SELECT user_id
+      FROM "user"
+      WHERE role IN ('admin', 'researcher') AND is_active = true
+    `,
+  );
+
+  for (const recipient of recipients.rows) {
+    await NotificationModel.createNotificationEvent({
+      userId: recipient.user_id,
+      notificationType: "low_stock_alert",
+      message: notificationMessage,
+      seedId,
+      payload: {
+        seed_id: seedId,
+        current_quantity: currentQuantity,
+        threshold,
+        transaction_id: payload.transaction_id || null,
+        source_event_id: event.event_id || null,
+      },
+    });
+  }
 };
 
 const handleNotificationCreatedEvent = async (event) => {
