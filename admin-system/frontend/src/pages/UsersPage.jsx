@@ -169,10 +169,6 @@ const UsersPage = () => {
     <div className="panel">
       <div className="hero">
         <h2>User Management</h2>
-        <p>
-          Add, update, and deactivate TANIM users while keeping the roster
-          readable for admin staff.
-        </p>
       </div>
       {error ? <div className="error-banner">{error}</div> : null}
 
@@ -180,11 +176,6 @@ const UsersPage = () => {
         <div className="section-head">
           <div>
             <div className="section-kicker">Create account</div>
-            <h3 style={{ margin: 0 }}>New user profile</h3>
-            <p className="section-description">
-              Capture the full identity up front so audit logs and user rows are
-              easy to scan later.
-            </p>
           </div>
         </div>
 

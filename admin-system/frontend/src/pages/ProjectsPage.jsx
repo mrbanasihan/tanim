@@ -140,10 +140,6 @@ const ProjectsPage = () => {
     <div className="panel">
       <div className="hero">
         <h2>Project Management</h2>
-        <p>
-          Create and maintain TANIM research projects with crop groups for
-          targeted seed catalog access.
-        </p>
       </div>
       {error ? <div className="error-banner">{error}</div> : null}
 
@@ -151,11 +147,6 @@ const ProjectsPage = () => {
         <div className="section-head">
           <div>
             <div className="section-kicker">Create project</div>
-            <h3 style={{ margin: 0 }}>New research project</h3>
-            <p className="section-description">
-              Capture the project code, dates, and purpose together so the
-              record is immediately useful.
-            </p>
           </div>
         </div>
 

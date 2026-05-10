@@ -147,14 +147,6 @@ const TemperatureLogs = () => {
 
       <div className="section-card temperature-summary-card">
         <div className="section-head">
-          <div>
-            <div className="section-kicker">Reading feed</div>
-            <h3 className="section-title">Current page snapshot</h3>
-            <div className="section-description">
-              Normal readings stay neutral. Warning, critical, and danger states
-              are highlighted with yellow, red, and maroon tones.
-            </div>
-          </div>
           <div
             className="temperature-legend"
             aria-label="Temperature severity legend"

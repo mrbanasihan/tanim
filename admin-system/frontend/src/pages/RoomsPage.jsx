@@ -98,7 +98,6 @@ const RoomsPage = () => {
     <div className="panel">
       <div className="hero">
         <h2>Room Management</h2>
-        <p>Manage storage and processing rooms in a cleaner admin workflow.</p>
       </div>
       {error ? <div className="error-banner">{error}</div> : null}
 
@@ -106,11 +105,6 @@ const RoomsPage = () => {
         <div className="section-head">
           <div>
             <div className="section-kicker">Create room</div>
-            <h3 style={{ margin: 0 }}>New room profile</h3>
-            <p className="section-description">
-              Keep the room name, location, and temperature range together so it
-              reads like a catalog entry.
-            </p>
           </div>
         </div>
 
