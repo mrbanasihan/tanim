@@ -4,7 +4,7 @@ const EVENT_TYPE_TO_ACTION = {
   SeedRegisteredEvent: "CREATE",
   SeedUpdatedEvent: "UPDATE",
   SeedWithdrawalEvent: "UPDATE",
-  SeedDisposalEvent: "DELETE",
+  SeedDisposalEvent: "UPDATE",
   LowStockAlertEvent: "CREATE",
 };
 
