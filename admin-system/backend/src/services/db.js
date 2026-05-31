@@ -3,12 +3,15 @@ const dns = require("dns");
 const { promisify } = require("util");
 require("dotenv").config();
 
+// PostgreSQL connection pool management with DNS resolution and SSL configuration
 dns.setDefaultResultOrder("ipv4first");
 const lookup = promisify(dns.lookup);
 
 let pool;
 let resolvingPool;
 
+// getDbHost
+// Resolve database hostname from configuration with DNS lookup for IPv4
 const getDbHost = async () => {
   const configuredHost = process.env.DB_HOST || "localhost";
 
@@ -28,6 +31,8 @@ const getDbHost = async () => {
   return result.address;
 };
 
+// isEnabled
+// Parse environment variable as boolean (accepts: true, 1, yes, on)
 const isEnabled = (value) => {
   if (value === undefined) {
     return false;
@@ -36,6 +41,8 @@ const isEnabled = (value) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
+// getSslConfig
+// Build SSL configuration object for database connections
 const getSslConfig = () => {
   if (!isEnabled(process.env.DB_SSL)) {
     return undefined;
@@ -49,6 +56,8 @@ const getSslConfig = () => {
   };
 };
 
+// createPool
+// Create PostgreSQL connection pool with resolved hostname
 const createPool = async () => {
   const resolvedHost = await getDbHost();
 
@@ -66,6 +75,8 @@ const createPool = async () => {
   });
 };
 
+// ensurePool
+// Lazy-initialize and return database connection pool (singleton pattern)
 const ensurePool = async () => {
   if (pool) {
     return pool;

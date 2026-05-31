@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const db = require("./db");
 
+// Manages audit logging, temperature logging, notification logging, and CRUD operations for users, projects, and rooms
 const buildUpdateClause = (fields, startIndex = 1) => {
   const entries = Object.entries(fields).filter(
     ([, value]) => value !== undefined,

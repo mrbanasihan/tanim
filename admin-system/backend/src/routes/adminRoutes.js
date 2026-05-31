@@ -18,6 +18,7 @@ const {
   deleteRoom,
 } = require("../services/auditService");
 
+// Admin API endpoints for audit logs, temperature logs, notification logs, users, projects, and rooms management
 const router = express.Router();
 
 const asyncHandler = (handler) => async (req, res, next) => {

@@ -1,3 +1,5 @@
+// authorize
+// Middleware to enforce role-based access control for protected routes
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {

@@ -2,21 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const emptyProject = {
-  project_name: "",
-  project_code: "",
-  description: "",
-  start_date: "",
-  end_date: "",
-  crop_groups: [],
-};
-
-const cropGroupOptions = [
-  { value: "legumes", label: "Legumes" },
-  { value: "cereals", label: "Cereals" },
-  { value: "vegetables", label: "Vegetables" },
-];
-
+// ProjectsPage
+// Manages research projects with CRUD operations, filtering by crop group, and status tracking
 const ProjectsPage = () => {
   const [projects, setProjects] = useState([]);
   const [form, setForm] = useState(emptyProject);

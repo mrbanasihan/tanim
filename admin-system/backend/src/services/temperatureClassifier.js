@@ -1,6 +1,6 @@
 /**
- * Temperature status classifier (same rules as TANIM)
- */
+// Classifies temperature readings into status categories (normal, warning, critical, danger) based on room thresholds
+*/
 
 /**
  * Classify temperature status based on room thresholds

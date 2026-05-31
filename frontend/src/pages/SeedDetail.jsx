@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+// SeedDetail
+// Displays detailed information for a seed lot including transactions and germination records; interacts with seeds, transactions, and germination APIs
 const SeedDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();

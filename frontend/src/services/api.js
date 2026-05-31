@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// Use relative API path by default so requests work from other devices on LAN.
-// You can override with VITE_API_BASE_URL when needed.
+// normalizeBaseUrl
+// Parse and normalize API base URL with protocol and path validation
 const normalizeBaseUrl = (value) => {
   if (!value) {
     return "/api";
@@ -47,7 +47,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem("token");
       window.location.href = "/login";
     }

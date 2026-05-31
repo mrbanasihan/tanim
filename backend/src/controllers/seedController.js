@@ -14,6 +14,7 @@ const sanitizeOptionalNumber = (value) => {
 
 const SeedController = {
   // GET /api/seeds
+  // Retrieve all seed lots with optional filtering by crop type, variety, project, and search
   async getAll(req, res) {
     try {
       const { crop_type, variety, project_id, search, limit, offset } =
@@ -40,6 +41,7 @@ const SeedController = {
   },
 
   // GET /api/seeds/:id
+  // Fetch single seed lot with project and storage area details
   async getById(req, res) {
     try {
       const { id } = req.params;
@@ -61,7 +63,7 @@ const SeedController = {
   },
 
   // POST /api/seeds
-  // POST /api/seeds
+  // Create new seed lot with auto-generated batch name and initial quantity setup
   async create(req, res) {
     try {
       const seedData = {
@@ -110,6 +112,7 @@ const SeedController = {
   },
 
   // PUT /api/seeds/:id
+  // Update seed lot details including crop type, variety, weight, and storage information
   async update(req, res) {
     try {
       const { id } = req.params;
@@ -153,6 +156,7 @@ const SeedController = {
   },
 
   // DELETE /api/seeds/:id
+  // Soft delete seed lot by marking is_active as false
   async delete(req, res) {
     try {
       const { id } = req.params;

@@ -2,7 +2,8 @@ const db = require("../services/db");
 const { CROP_GROUPS } = require("../constants/cropCatalog");
 
 const UserModel = {
-  // Creates new user in the database
+  // create
+  // Insert new user with email, hashed password, name, and role assignment
   async create(email, passwordHash, firstName, lastName, role = "guest") {
     const query = `
             INSERT INTO "user" (user_id, email, password, first_name, last_name, role, is_active, created_at)
@@ -19,12 +20,16 @@ const UserModel = {
     return result.rows[0];
   },
 
+  // findByEmail
+  // Retrieve active user by email address
   async findByEmail(email) {
     const query = `SELECT * FROM "user" WHERE email = $1 AND is_active = true`;
     const result = await db.query(query, [email]);
     return result.rows[0];
   },
 
+  // findById
+  // Fetch user details with assigned crop groups (admin gets all groups)
   async findById(userId) {
     const query = `SELECT user_id, email, first_name, last_name, role, created_at 
     FROM "user" WHERE user_id = $1 AND is_active = true`;
@@ -45,6 +50,8 @@ const UserModel = {
     return user;
   },
 
+  // createSession
+  // Create authentication session record with token and expiration time
   async createSession(userId, token, expiresAt) {
     const query = `
         INSERT INTO user_session (session_id, user_id, token, expires_at, created_at) 
@@ -55,11 +62,15 @@ const UserModel = {
     return result.rows[0];
   },
 
+  // deleteSession
+  // Invalidate session by removing token from database
   async deleteSession(token) {
     const query = `DELETE FROM user_session WHERE token = $1`;
     await db.query(query, [token]);
   },
 
+  // findSessionbyToken
+  // Retrieve valid session by token (checks expiration time)
   async findSessionbyToken(token) {
     const query = `SELECT * FROM user_session WHERE token = $1 AND expires_at > NOW()`;
     const result = await db.query(query, [token]);

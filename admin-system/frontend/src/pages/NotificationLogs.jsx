@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 20;
-
+// NotificationLogs
+// Displays paginated notification logs with search and expandable payload details
 const NotificationLogs = () => {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState({ total: 0, totalPages: 0, page: 1 });

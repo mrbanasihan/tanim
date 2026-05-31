@@ -35,6 +35,7 @@ const normalizeProjectCropGroups = (rawValue, defaultToLegumes = false) => {
 
 const ProjectController = {
   // GET /api/projects
+  // Retrieve all projects with role-based crop group filtering
   async getAll(req, res) {
     try {
       const requestedCropGroup = (req.query.crop_group || "").toString().trim();
@@ -75,6 +76,7 @@ const ProjectController = {
   },
 
   // GET /api/projects/:id
+  // Fetch single project by ID with associated crop groups
   async getById(req, res) {
     try {
       const { id } = req.params;
@@ -92,6 +94,7 @@ const ProjectController = {
   },
 
   // POST /api/projects
+  // Create new project with name, description, dates, and crop group assignment
   async create(req, res) {
     try {
       const {
@@ -140,6 +143,7 @@ const ProjectController = {
   },
 
   // PUT /api/projects/:id
+  // Update existing project details and crop group associations
   async update(req, res) {
     try {
       const { id } = req.params;
@@ -195,6 +199,7 @@ const ProjectController = {
   },
 
   // DELETE /api/projects/:id
+  // Remove project and associated crop group assignments
   async delete(req, res) {
     try {
       const { id } = req.params;

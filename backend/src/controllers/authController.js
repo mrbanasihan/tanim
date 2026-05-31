@@ -12,7 +12,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "6h"; // Token expiration in 6 hours
 
 const AuthController = {
-  // POST /api/auth/register
+  // register
+  // Create new user account with email, password, and role validation
   async register(req, res) {
     try {
       const sanitizedData = {
@@ -42,7 +43,7 @@ const AuthController = {
         sanitizedData.role || "guest",
       );
 
-      res.status(201).son({
+      res.status(201).json({
         message: "User registered successfully",
         user: user,
       });
@@ -53,6 +54,7 @@ const AuthController = {
   },
 
   // POST /api/auth/login
+  // Authenticate user with email/password, generate JWT token and create session
   async login(req, res) {
     try {
       const email = sanitizeEmail(req.body.email);
@@ -70,19 +72,16 @@ const AuthController = {
           .json({ error: "Email must be in the format @<domain>.com" });
       }
 
-      // Find user by email in the database
       const user = await UserModel.findByEmail(email);
       if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // Generate JWT token
       const token = jwt.sign(
         { userId: user.user_id, email: user.email, role: user.role },
         JWT_SECRET,
@@ -90,9 +89,8 @@ const AuthController = {
       );
 
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 6); // Set expiration time to 6 hours
+      expiresAt.setHours(expiresAt.getHours() + 6);
 
-      // Create session in the database
       await UserModel.createSession(user.user_id, token, expiresAt);
 
       const hydratedUser = await UserModel.findById(user.user_id);
@@ -117,6 +115,7 @@ const AuthController = {
   },
 
   // POST /api/auth/logout
+  // Invalidate user session by deleting token from database
   async logout(req, res) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
@@ -131,6 +130,7 @@ const AuthController = {
   },
 
   // GET /api/auth/me
+  // Retrieve authenticated user details by userId
   async getCurrentUser(req, res) {
     try {
       const user = await UserModel.findById(req.user.userId);

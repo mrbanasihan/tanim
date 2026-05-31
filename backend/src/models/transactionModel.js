@@ -9,6 +9,8 @@ const { createOutboxEvent } = require("../services/kafka/outboxService");
 const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD || 2);
 
 const TransactionModel = {
+  // getById
+  // Retrieve single transaction with seed and user details
   async getById(transactionId) {
     const query = `
       SELECT t.*, s.batch_name, s.crop_type, s.variety
@@ -21,6 +23,8 @@ const TransactionModel = {
     return result.rows[0];
   },
 
+  // getAll
+  // Fetch all transactions with optional filtering and role-based access control
   async getAll(filters = {}) {
     let query = `
       SELECT t.*, s.batch_name, s.crop_type, s.variety, u.first_name, u.last_name

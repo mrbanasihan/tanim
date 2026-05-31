@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 
+// TransactionForm
+// Form to create or edit seed transactions (check-out or disposal); interacts with transactions and seeds APIs
 const TransactionForm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -90,18 +92,9 @@ const TransactionForm = () => {
     }
   };
 
+  // handleChange
+  // Updates form data and syncs selected seed quantity
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    let nextValue = value;
-
-    if (name === "contact") {
-      nextValue = value.replace(/\D/g, "").slice(0, 11);
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: nextValue }));
-
-    // When seed_id changes, fetch and display current quantity
-    if (name === "seed_id" && value) {
       try {
         const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
         if (selectedSeed) {
@@ -117,6 +110,8 @@ const TransactionForm = () => {
     }
   };
 
+  // handleSubmit
+  // Validates and submits transaction form; creates check-out or disposal transaction
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

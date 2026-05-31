@@ -2,6 +2,8 @@ const { SerialPort } = require("serialport");
 const { ReadlineParser } = require("@serialport/parser-readline");
 const { ARDUINO_BAUD_RATE, ARDUINO_DEVICE, REAL_SENSOR } = require("./config");
 
+// arduinoBridge
+// Communicates with Arduino sensors over serial connection and publishes readings via Kafka producer
 const parseReadingLine = (line) => {
   const match = String(line)
     .trim()

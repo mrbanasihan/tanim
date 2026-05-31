@@ -1,3 +1,5 @@
+// toTitleCase
+// Convert string value to title case format (first letter of each word capitalized)
 export const toTitleCase = (value) => {
   if (!value && value !== 0) return "";
 

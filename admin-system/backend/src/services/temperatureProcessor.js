@@ -6,6 +6,7 @@ const db = require("./db");
 const { recordTemperatureLog } = require("./auditService");
 const { classifyStatus } = require("./temperatureClassifier");
 
+// Consumes temperature events from Kafka topic and processes them with classification and logging; publishes feedback to admin topic
 const getBrokers = () =>
   (process.env.KAFKA_BROKERS || "")
     .split(",")

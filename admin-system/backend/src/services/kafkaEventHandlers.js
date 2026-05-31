@@ -1,5 +1,6 @@
 const { recordAuditLogOnce, recordNotificationLog } = require("./auditService");
 
+// Processes Tanim events from Kafka and forwards to audit service for logging; normalizes and maps event types
 const EVENT_TYPE_TO_ACTION = {
   SeedRegisteredEvent: "CREATE",
   SeedUpdatedEvent: "UPDATE",

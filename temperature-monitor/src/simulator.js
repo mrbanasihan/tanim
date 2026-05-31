@@ -3,10 +3,15 @@ const {
   SIMULATOR_OUTLIER_PROBABILITY,
 } = require("./config");
 
+// simulator
+// Generates simulated temperature readings with realistic normal distribution and occasional outliers
+// Generate random number between min and max values
 const randBetween = (min, max) => min + Math.random() * (max - min);
+
+// Constrain value between min and max boundaries
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-// Box-Muller transform for normal (Gaussian) sampling
+// Generate random sample from normal distribution using Box-Muller transform
 const randNormal = (mean, sd) => {
   let u = 0;
   let v = 0;
@@ -15,6 +20,8 @@ const randNormal = (mean, sd) => {
   const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
   return mean + z * sd;
 };
+// generateHumidity
+// Calculate humidity reading based on temperature with realistic variance
 const generateHumidity = (tempCelsius) => {
   const baseline = 68 - (tempCelsius - 24) * 1.2;
   return Number(
@@ -22,6 +29,8 @@ const generateHumidity = (tempCelsius) => {
   );
 };
 
+// generateReading
+// Create simulated temperature and humidity reading with optional outliers
 const generateReading = (
   sensor,
   outlierProbability = SIMULATOR_OUTLIER_PROBABILITY,
@@ -62,6 +71,8 @@ const generateReading = (
   };
 };
 
+// startSimulator
+// Initialize simulator loop publishing temperature readings at specified intervals
 const startSimulator = async ({
   producer,
   sensors = [],

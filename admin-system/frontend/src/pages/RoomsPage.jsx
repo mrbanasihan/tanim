@@ -2,14 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const emptyRoom = {
-  room_name: "",
-  building_location: "",
-  optimal_temp: "",
-  temp_start: "",
-  temp_end: "",
-};
-
+// RoomsPage
+// Manages storage rooms with CRUD operations, filtering, sorting, and temperature threshold settings
 const RoomsPage = () => {
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState(emptyRoom);

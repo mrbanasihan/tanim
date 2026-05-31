@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+// GerminationRecordForm
+// Form to record germination test results for a seed lot; interacts with germination records API
 const GerminationRecordForm = () => {
   const { seedId } = useParams();
   const navigate = useNavigate();
@@ -29,6 +31,8 @@ const GerminationRecordForm = () => {
     }
   };
 
+  // handleChange
+  // Updates form data when inputs change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -37,6 +41,8 @@ const GerminationRecordForm = () => {
     }));
   };
 
+  // handleSubmit
+  // Validates and submits germination record; redirects to seed detail on success
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

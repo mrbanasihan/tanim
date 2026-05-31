@@ -3,6 +3,7 @@ const { app } = require("./app");
 const { startKafkaConsumer, disconnectKafka } = require("./services/kafka");
 const { closePool } = require("./services/db");
 
+// Server initialization with Kafka consumer startup, temperature processor, and shutdown
 const PORT = Number(process.env.PORT) || 5100;
 const HOST = process.env.HOST || "0.0.0.0";
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+// NotificationBell
+// Bell icon showing unread notifications count with dropdown menu; interacts with notifications API
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -36,6 +38,8 @@ const NotificationBell = () => {
     }
   }, [showDropdown]);
 
+  // fetchNotifications
+  // Fetches notifications and unread count from API
   const fetchNotifications = async () => {
     try {
       const [notificationsRes, countRes] = await Promise.all([
@@ -54,6 +58,8 @@ const NotificationBell = () => {
     }
   };
 
+  // handleMarkAsRead
+  // Marks a single notification as read
   const handleMarkAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/mark-read`);
@@ -63,6 +69,8 @@ const NotificationBell = () => {
     }
   };
 
+  // handleMarkAllAsRead
+  // Marks all notifications as read
   const handleMarkAllAsRead = async () => {
     try {
       await api.put("/notifications/mark-all-read");
@@ -72,6 +80,8 @@ const NotificationBell = () => {
     }
   };
 
+  // handleDelete
+  // Deletes a notification
   const handleDelete = async (notificationId) => {
     try {
       await api.delete(`/notifications/${notificationId}`);

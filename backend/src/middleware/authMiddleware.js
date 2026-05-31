@@ -7,6 +7,8 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
+// authenticate
+// Middleware to verify JWT token and validate session existence in database
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -16,13 +18,11 @@ const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Does session exist in the database and is valid
     const session = await UserModel.findSessionbyToken(token);
     if (!session) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();

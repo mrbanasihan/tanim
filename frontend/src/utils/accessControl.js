@@ -1,10 +1,5 @@
-// Role-based access control utilities for frontend
-import {
-  CROP_CATALOG,
-  CROP_GROUPS,
-  getSelectedCropGroup,
-} from "../constants/cropCatalog";
-
+// canAccessFeature
+// Check if user role has permission for specific feature
 export const canAccessFeature = (userRole, feature) => {
   const featureAccess = {
     admin: [
@@ -58,6 +53,8 @@ export const canAccessFeature = (userRole, feature) => {
   return featureAccess[userRole]?.includes(feature) || false;
 };
 
+// getVisibleCropTypes
+// Get crop types visible to user based on role and assigned crop groups
 export const getVisibleCropTypes = (userRole, cropGroups, allCropTypes) => {
   const selectedGroup = getSelectedCropGroup(userRole, cropGroups);
   if (selectedGroup) {
@@ -67,6 +64,8 @@ export const getVisibleCropTypes = (userRole, cropGroups, allCropTypes) => {
   return allCropTypes || [];
 };
 
+// filterByCropGroup
+// Filter items by crop group based on user role and permissions
 export const filterByCropGroup = (items, userRole, cropGroups) => {
   const inputItems = Array.isArray(items) ? items : [];
 

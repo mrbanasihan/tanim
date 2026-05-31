@@ -7,6 +7,8 @@ const {
 const { createOutboxEvent } = require("../services/kafka/outboxService");
 
 const NotificationModel = {
+  // getByUserId
+  // Retrieve user notifications with optional read status filtering
   async getByUserId(userId, filters = {}) {
     let query = `
       SELECT * FROM notification
@@ -25,6 +27,8 @@ const NotificationModel = {
     return result.rows;
   },
 
+  // getUnreadCount
+  // Count unread notifications for user
   async getUnreadCount(userId) {
     const query = `
       SELECT COUNT(*) as count FROM notification
@@ -34,6 +38,8 @@ const NotificationModel = {
     return result.rows[0].count;
   },
 
+  // markAsRead
+  // Update notification as read by ID
   async markAsRead(notificationId) {
     const query = `
       UPDATE notification

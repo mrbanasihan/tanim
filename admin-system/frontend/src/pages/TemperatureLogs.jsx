@@ -2,17 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 20;
-const statusOrder = ["normal", "warning", "critical", "danger"];
-
-const statusLabels = {
-  normal: "Normal",
-  warning: "Warning",
-  critical: "Critical",
-  danger: "Danger",
-  unclassified: "Unclassified",
-};
-
+// TemperatureLogs
+// Displays paginated temperature readings with status classification and expandable details
 const TemperatureLogs = () => {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState({ total: 0, totalPages: 0, page: 1 });

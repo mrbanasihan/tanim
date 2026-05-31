@@ -26,6 +26,8 @@ ChartJS.register(
   Title,
 );
 
+// Reports
+// Generates and displays charts for seeds, transactions, and projects; enforces role-based report access
 const Reports = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();

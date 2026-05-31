@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+// config
+// Configuration constants for Kafka, Arduino sensors, and simulator settings; supports both real sensors and simulated data
 const REAL_SENSOR = {
   sensor_id: "91000000-0000-4000-8000-000000000001",
   room_id: "90000000-0000-4000-8000-000000000001",
@@ -8,6 +10,8 @@ const REAL_SENSOR = {
   source_type: "real",
 };
 
+// parseJson
+// Parse JSON string with fallback value on error
 const parseJson = (value, fallback) => {
   if (!value) {
     return fallback;

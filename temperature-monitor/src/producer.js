@@ -4,6 +4,10 @@ const fs = require("fs");
 const path = require("path");
 const { KAFKA_BROKERS, KAFKA_CLIENT_ID, KAFKA_TOPIC } = require("./config");
 
+// producer
+// Kafka producer for publishing temperature readings to tanim.temperature topic; handles SSL/SASL authentication
+// readSecret
+// Read secret file from environment path or fallback locations
 const readSecret = (filePath, envValue, fallbackNames = []) => {
   if (envValue) {
     return envValue;
@@ -26,6 +30,8 @@ const readSecret = (filePath, envValue, fallbackNames = []) => {
   return undefined;
 };
 
+// parseSsl
+// Parse and load SSL/TLS certificate configuration from environment
 const parseSsl = () => {
   if (
     !["true", "1", "yes", "on"].includes(

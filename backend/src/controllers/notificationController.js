@@ -2,6 +2,7 @@ const NotificationModel = require("../models/notificationModel");
 
 const NotificationController = {
   // GET /api/notifications
+  // Retrieve user notifications with optional read status filtering
   async getByUser(req, res) {
     try {
       const { isRead } = req.query;
@@ -21,6 +22,7 @@ const NotificationController = {
   },
 
   // GET /api/notifications/unread-count
+  // Get count of unread notifications for authenticated user
   async getUnreadCount(req, res) {
     try {
       const count = await NotificationModel.getUnreadCount(req.user.userId);
@@ -31,7 +33,8 @@ const NotificationController = {
     }
   },
 
-  // PUT /api/notifications/:id/mark-read
+  // markAsRead
+  // Mark single notification as read by ID
   async markAsRead(req, res) {
     try {
       const { id } = req.params;
@@ -49,6 +52,7 @@ const NotificationController = {
   },
 
   // PUT /api/notifications/mark-all-read
+  // Mark all user notifications as read
   async markAllAsRead(req, res) {
     try {
       const notifications = await NotificationModel.markAllAsRead(
@@ -62,6 +66,7 @@ const NotificationController = {
   },
 
   // DELETE /api/notifications/:id
+  // Remove notification by ID
   async delete(req, res) {
     try {
       const { id } = req.params;

@@ -1,7 +1,8 @@
 const db = require("../services/db");
 
 const RoomModel = {
-  // Get all rooms
+  // getAll
+  // Retrieve all rooms from database (supports both room and rooms table schemas)
   async getAll() {
     const roomTableCheck = await db.query(
       `SELECT to_regclass('public.room') AS table_name`,
@@ -38,7 +39,8 @@ const RoomModel = {
     return [];
   },
 
-  // Get room by ID
+  // getById
+  // Fetch single room by ID
   async getById(roomId) {
     const query = `
       SELECT room_id, room_name, building_location, optimal_temp,

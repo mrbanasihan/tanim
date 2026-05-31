@@ -6,6 +6,8 @@ import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 import { getSelectedCropGroup } from "../constants/cropCatalog";
 
+// SeedList
+// Lists all seed lots with filtering by crop type, variety, and project; interacts with seeds API and access control
 const SeedList = () => {
   const { user } = useAuth();
   const [seeds, setSeeds] = useState([]);
@@ -34,12 +36,10 @@ const SeedList = () => {
   const varietyDropdownRef = useRef(null);
   const projectDropdownRef = useRef(null);
 
-  // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData();
   }, []);
 
-  // Handle clicking outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -68,12 +68,10 @@ const SeedList = () => {
     };
   }, []);
 
-  // Fetch seeds when filters or sort changes
   useEffect(() => {
     fetchSeeds();
   }, [filters, sortType, sortOrder, user?.role, user?.crop_groups]);
 
-  // Apply search filtering locally
   useEffect(() => {
     if (seeds.length > 0) {
       applySearchAndFilters();

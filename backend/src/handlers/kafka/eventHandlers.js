@@ -3,6 +3,8 @@ const { KAFKA_EVENTS } = require("../../constants/kafka");
 const { handleTemperatureEscalation } = require("./temperatureFeedbackHandler");
 const NotificationModel = require("../../models/notificationModel");
 
+// ensureEventIdempotency
+// Check if event was already processed in audit_log or ipb_central_system to prevent duplicates
 const ensureEventIdempotency = async (eventId) => {
   const [auditResult, ipbResult] = await Promise.all([
     db.query("SELECT 1 FROM audit_log WHERE source_event_id = $1 LIMIT 1", [
@@ -21,6 +23,8 @@ const ensureEventIdempotency = async (eventId) => {
   return true;
 };
 
+// insertAuditLog
+// Record event action to audit_log table for tracking and compliance
 const insertAuditLog = async (actionType, event) => {
   await db.query(
     `
@@ -36,6 +40,8 @@ const insertAuditLog = async (actionType, event) => {
   );
 };
 
+// insertCentralRecord
+// Store event data in ipb_central_system for inter-departmental integration
 const insertCentralRecord = async (dataType, event) => {
   await db.query(
     `
@@ -46,6 +52,8 @@ const insertCentralRecord = async (dataType, event) => {
   );
 };
 
+// handleSeedRegisteredEvent
+// Process seed creation event with audit logging and central system sync
 const handleSeedRegisteredEvent = async (event) => {
   if (!(await ensureEventIdempotency(event.event_id))) {
     return;
@@ -57,6 +65,8 @@ const handleSeedRegisteredEvent = async (event) => {
   ]);
 };
 
+// handleSeedUpdatedEvent
+// Process seed update event with audit logging and central system sync
 const handleSeedUpdatedEvent = async (event) => {
   if (!(await ensureEventIdempotency(event.event_id))) {
     return;
@@ -68,6 +78,8 @@ const handleSeedUpdatedEvent = async (event) => {
   ]);
 };
 
+// handleTransactionEvent
+// Process transaction event with audit logging and central system sync
 const handleTransactionEvent = async (event) => {
   if (!(await ensureEventIdempotency(event.event_id))) {
     return;

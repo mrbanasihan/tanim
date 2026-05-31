@@ -6,6 +6,8 @@ require("dotenv").config();
 
 dns.setDefaultResultOrder("ipv4first");
 
+// getBooleanEnv
+// Parse environment variable as boolean (accepts: true, 1, yes, on)
 const getBooleanEnv = (value) => {
   if (value === undefined) {
     return false;
@@ -14,6 +16,8 @@ const getBooleanEnv = (value) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
+// getSslConfig
+// Build SSL configuration object for database connections
 const getSslConfig = () => {
   if (!getBooleanEnv(process.env.DB_SSL)) {
     return undefined;
@@ -58,7 +62,8 @@ pool.on("error", (err) => {
   process.exit(-1);
 });
 
-// Helper function to execute queries
+// query
+// Execute SQL query with slow query logging and error handling
 const query = async (text, params) => {
   const start = Date.now();
   try {
@@ -74,7 +79,8 @@ const query = async (text, params) => {
   }
 };
 
-// Helper function to get a client for transactions
+// getClient
+// Get database client with query timeout and transaction support
 const getClient = async () => {
   const client = await pool.connect();
   const originalQuery = client.query;

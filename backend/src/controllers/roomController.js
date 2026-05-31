@@ -1,5 +1,7 @@
 const RoomModel = require("../models/roomModel");
 
+// getAll
+// Retrieve all rooms from database
 const getAll = async (req, res) => {
   try {
     const rooms = await RoomModel.getAll();
@@ -10,6 +12,8 @@ const getAll = async (req, res) => {
   }
 };
 
+// getById
+// Fetch single room by ID
 const getById = async (req, res) => {
   try {
     const room = await RoomModel.getById(req.params.id);
@@ -23,6 +27,8 @@ const getById = async (req, res) => {
   }
 };
 
+// create
+// Create new room with provided details
 const create = async (req, res) => {
   try {
     const room = await RoomModel.create(req.body);
@@ -33,6 +39,8 @@ const create = async (req, res) => {
   }
 };
 
+// update
+// Update existing room details by ID
 const update = async (req, res) => {
   try {
     const room = await RoomModel.update(req.params.id, req.body);
@@ -46,6 +54,8 @@ const update = async (req, res) => {
   }
 };
 
+// remove
+// Delete room by ID
 const remove = async (req, res) => {
   try {
     const room = await RoomModel.delete(req.params.id);

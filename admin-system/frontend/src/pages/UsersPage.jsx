@@ -2,22 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const emptyUser = {
-  email: "",
-  password: "",
-  first_name: "",
-  last_name: "",
-  role: "guest",
-  is_active: true,
-  crop_groups: [],
-};
-
-const cropGroupOptions = [
-  { value: "legumes", label: "Legumes" },
-  { value: "cereals", label: "Cereals" },
-  { value: "vegetables", label: "Vegetables" },
-];
-
+// UsersPage
+// Manages system users with CRUD operations, role assignment, and crop group permissions
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyUser);

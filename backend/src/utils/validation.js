@@ -1,22 +1,26 @@
-// Email validation
+// isValidEmail
+// Verify email format matches @domain.com pattern
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^@\s]+\.com$/i;
   return emailRegex.test(email);
 };
 
-// Password validation (minimum 6 characters)
+// isValidPassword
+// Check password meets minimum 6 character requirement
 const isValidPassword = (password) => {
   return password && password.length >= 6;
 };
 
-// Name validation (not empty, only letters, spaces, hyphens)
+// isValidName
+// Validate name contains only letters, spaces, and hyphens
 const isValidName = (name) => {
   if (!name || typeof name !== "string") return false;
   const nameRegex = /^[A-Za-z\s\-']+$/;
   return nameRegex.test(name.trim());
 };
 
-// Quantity validation (positive number, max 2 decimal places)
+// isValidQuantity
+// Verify positive number with max 2 decimal places
 const isValidQuantity = (quantity) => {
   const num = parseFloat(quantity);
   if (isNaN(num)) return false;
@@ -26,19 +30,22 @@ const isValidQuantity = (quantity) => {
   return decimalPlaces <= 2;
 };
 
-// Contact number validation (09XXXXXXXXX)
+// isValidContactNumber
+// Validate Philippine (+63) contact number format (09XXXXXXXXX)
 const isValidContactNumber = (contact) => {
   return /^09\d{9}$/.test(String(contact || ""));
 };
 
-// Integer validation (positive whole number)
+// isValidInteger
+// Check value is positive whole number
 const isValidInteger = (value) => {
   return /^\d+$/.test(String(value ?? ""));
 };
 
-// Date validation (YYYY-MM-DD format and not future date)
+// isValidDate
+// Verify date format (YYYY-MM-DD) and optionally reject future dates
 const isValidDate = (dateString, allowFuture = false) => {
-  if (!dateString) return true; // Allow optional dates
+  if (!dateString) return true;
 
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   if (!dateRegex.test(dateString)) return false;
@@ -51,26 +58,30 @@ const isValidDate = (dateString, allowFuture = false) => {
   return true;
 };
 
-// UUID validation
+// isValidUUID
+// Check value is valid UUID format (RFC 4122)
 const isValidUUID = (uuid) => {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 };
 
-// Percentage validation (0-100)
+// isValidPercentage
+// Validate value is between 0 and 100
 const isValidPercentage = (value) => {
   const num = parseInt(value);
   if (isNaN(num)) return false;
   return num >= 0 && num <= 100;
 };
 
-// Enum validation
+// isValidEnum
+// Check value is in allowed values array
 const isValidEnum = (value, allowedValues) => {
   return allowedValues.includes(value);
 };
 
-// Seed lot validation
+// validateSeedLot
+// Check seed lot data for crop type, variety, weights, and moisture content
 const validateSeedLot = (data, options = {}) => {
   const errors = [];
   const { requireGrossWeight = false } = options;
@@ -136,7 +147,8 @@ const validateSeedLot = (data, options = {}) => {
   };
 };
 
-// Transaction validation
+// validateCheckOut
+// Verify seed checkout transaction data (seed_id, quantity, recipient, contact)
 const validateCheckOut = (data) => {
   const errors = [];
 
@@ -162,6 +174,8 @@ const validateCheckOut = (data) => {
   };
 };
 
+// validateCheckIn
+// Check seed check-in transaction (seed_id, quantity)
 const validateCheckIn = (data) => {
   const errors = [];
 
@@ -179,6 +193,8 @@ const validateCheckIn = (data) => {
   };
 };
 
+// validateDisposal
+// Validate seed disposal transaction (seed_id, quantity, disposal purpose)
 const validateDisposal = (data) => {
   const errors = [];
 
@@ -200,6 +216,8 @@ const validateDisposal = (data) => {
   };
 };
 
+// validateAdjustment
+// Check inventory adjustment data (seed_id, quantity, adjustment purpose)
 const validateAdjustment = (data) => {
   const errors = [];
 
@@ -222,7 +240,8 @@ const validateAdjustment = (data) => {
   };
 };
 
-// User validation
+// validateUserRegistration
+// Verify user registration data (email, password, name, role)
 const validateUserRegistration = (data) => {
   const errors = [];
 
@@ -260,7 +279,8 @@ const validateUserRegistration = (data) => {
   };
 };
 
-// Project validation
+// validateProject
+// Check project data (name, dates, date order validity)
 const validateProject = (data) => {
   const errors = [];
 
@@ -290,7 +310,8 @@ const validateProject = (data) => {
   };
 };
 
-// Temperature reading validation
+// validateTemperatureReading
+// Validate temperature reading data (celsius value within valid range)
 const validateTemperatureReading = (data) => {
   const errors = [];
 
@@ -319,12 +340,15 @@ const validateTemperatureReading = (data) => {
   };
 };
 
-// Sanitization functions
+// sanitizeString
+// Remove whitespace and HTML-like tags from string input
 const sanitizeString = (str) => {
   if (!str || typeof str !== "string") return "";
   return str.trim().replace(/[<>]/g, ""); // Remove potential HTML tags
 };
 
+// sanitizeTitleCase
+// Convert string to title case format with validation
 const sanitizeTitleCase = (str) => {
   // Return empty string for undefined, null, or non-string values
   if (!str || typeof str !== "string") return "";
@@ -340,16 +364,22 @@ const sanitizeTitleCase = (str) => {
     .join(" ");
 };
 
+// sanitizeEmail
+// Normalize email to lowercase and trim whitespace
 const sanitizeEmail = (email) => {
   if (!email || typeof email !== "string") return "";
   return email.toLowerCase().trim();
 };
 
+// sanitizeQuantity
+// Extract numeric value and ensure absolute value
 const sanitizeQuantity = (quantity) => {
   const num = parseFloat(quantity);
   return isNaN(num) ? 0 : Math.abs(num);
 };
 
+// sanitizeContactNumber
+// Extract digits and limit to 11 characters for Philippine format
 const sanitizeContactNumber = (contact) => {
   if (!contact || typeof contact !== "string") return "";
   return contact.replace(/\D/g, "").slice(0, 11);

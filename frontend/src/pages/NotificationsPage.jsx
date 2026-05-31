@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import api from "../services/api";
 
+// NotificationsPage
+// Displays notifications grouped by month with mark as read and delete functionality
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +15,8 @@ const NotificationsPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // fetchNotifications
+  // Fetches notifications from API and updates state
   const fetchNotifications = async () => {
     try {
       const response = await api.get("/notifications");
@@ -28,6 +32,8 @@ const NotificationsPage = () => {
     }
   };
 
+  // handleMarkAsRead
+  // Marks a single notification as read
   const handleMarkAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/mark-read`);
@@ -37,6 +43,8 @@ const NotificationsPage = () => {
     }
   };
 
+  // handleMarkAllAsRead
+  // Marks all notifications as read
   const handleMarkAllAsRead = async () => {
     try {
       await api.put("/notifications/mark-all-read");
@@ -46,6 +54,8 @@ const NotificationsPage = () => {
     }
   };
 
+  // handleDelete
+  // Deletes a notification
   const handleDelete = async (notificationId) => {
     try {
       await api.delete(`/notifications/${notificationId}`);

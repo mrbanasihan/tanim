@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 
+// Dashboard
+// Admin system dashboard displaying health status and Kafka consumer information
 const Dashboard = () => {
   const [health, setHealth] = useState(null);
 

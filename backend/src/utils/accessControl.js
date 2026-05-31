@@ -2,7 +2,8 @@ const db = require("../services/db");
 const { CROP_CATALOG } = require("../constants/cropCatalog");
 
 const AccessControlUtils = {
-  // Get all crop groups assigned to a user
+  // getUserCropGroups
+  // Retrieve all crop groups assigned to user from database
   async getUserCropGroups(userId) {
     try {
       const query = `
@@ -19,24 +20,25 @@ const AccessControlUtils = {
     }
   },
 
-  // Check if user can access a specific crop group
+  // canAccessCropGroup
+  // Verify user has permission to access specific crop group (admin has full access)
   async canAccessCropGroup(userId, userRole, cropGroup) {
-    // Admins can access all crop groups
     if (userRole === "admin") {
       return true;
     }
 
-    // Others must have explicit assignment
     const cropGroups = await this.getUserCropGroups(userId);
     return cropGroups.includes(cropGroup);
   },
 
-  // Get all crops for a specific crop group
+  // getCropsForGroup
+  // Get list of crops available in specified crop group from catalog
   getCropsForGroup(cropGroup) {
     return Object.keys(CROP_CATALOG[cropGroup] || {});
   },
 
-  // Get varieties for a crop within a crop group
+  // getVarietiesForCrop
+  // Retrieve all varieties for crop across all crop groups
   getVarietiesForCrop(crop) {
     for (const groupCatalog of Object.values(CROP_CATALOG)) {
       if (groupCatalog[crop]) {
@@ -47,7 +49,8 @@ const AccessControlUtils = {
     return [];
   },
 
-  // Check if user has access to specific features based on role
+  // hasFeatureAccess
+  // Check if user role has permission for specific feature
   hasFeatureAccess(userRole, feature) {
     const featureAccess = {
       admin: [

@@ -9,16 +9,8 @@ import ProjectsPage from "./pages/ProjectsPage";
 import RoomsPage from "./pages/RoomsPage";
 import "./App.css";
 
-const navItems = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/audit-logs", label: "Audit Logs" },
-  { to: "/temperature-logs", label: "Temperature Logs" },
-  { to: "/notification-logs", label: "Notification Logs" },
-  { to: "/users", label: "Users" },
-  { to: "/projects", label: "Projects" },
-  { to: "/rooms", label: "Rooms" },
-];
-
+// App
+// Main admin system application with navigation and route setup
 const App = () => {
   return (
     <div className="shell">

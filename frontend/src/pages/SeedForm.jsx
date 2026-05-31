@@ -6,6 +6,8 @@ import { canAccessFeature } from "../utils/accessControl";
 import { CROP_CATALOG, getSelectedCropGroup } from "../constants/cropCatalog";
 import { toTitleCase } from "../utils/textFormat";
 
+// SeedForm
+// Form to create or edit seed lots; interacts with seeds and projects APIs, enforces role-based access control
 const SeedForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -144,6 +146,8 @@ const SeedForm = () => {
     }
   };
 
+  // handleChange
+  // Handles form field changes and updates form data state
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const sanitizedValue = type === "checkbox" ? checked : value;
@@ -167,6 +171,8 @@ const SeedForm = () => {
     setFormData(newFormData);
   };
 
+  // handleSubmit
+  // Validates and submits seed form data to create or update seed lot
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

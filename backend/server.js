@@ -24,6 +24,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 
+// isEnabled
+// Parse environment variable as boolean (accepts: true, 1, yes, on)
 const isEnabled = (value) => {
   if (value === undefined) {
     return false;
@@ -32,6 +34,8 @@ const isEnabled = (value) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
+// normalizeOrigin
+// Remove trailing slash from origin URL
 const normalizeOrigin = (origin) => origin.trim().replace(/\/$/, "");
 
 const configuredOrigins =
@@ -46,6 +50,8 @@ const allowedOrigins = configuredOrigins
       .filter(Boolean)
   : [];
 
+// wildcardToRegex
+// Convert wildcard pattern to regex for origin matching
 const wildcardToRegex = (originPattern) => {
   const escaped = originPattern
     .replace(/[.+?^${}()|[\]\\]/g, "\\$&")

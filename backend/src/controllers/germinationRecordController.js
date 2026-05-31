@@ -2,6 +2,7 @@ const GerminationRecordModel = require("../models/germinationRecordModel");
 
 const GerminationRecordController = {
   // GET /api/germination-records
+  // Retrieve all germination records with optional seed_id filter
   async getAll(req, res) {
     try {
       const { seed_id } = req.query;
@@ -15,6 +16,7 @@ const GerminationRecordController = {
   },
 
   // GET /api/germination-records/seed/:seedId
+  // Fetch all germination test records for specific seed
   async getBySeedId(req, res) {
     try {
       const { seedId } = req.params;
@@ -27,6 +29,7 @@ const GerminationRecordController = {
   },
 
   // GET /api/germination-records/seed/:seedId/latest
+  // Get most recent germination test record for seed
   async getLatestBySeedId(req, res) {
     try {
       const { seedId } = req.params;
@@ -42,6 +45,7 @@ const GerminationRecordController = {
   },
 
   // POST /api/germination-records
+  // Create new germination test record with rate and next test date
   async create(req, res) {
     try {
       const { seed_id, germination_rate, next_germination_date } = req.body;
@@ -75,6 +79,7 @@ const GerminationRecordController = {
   },
 
   // DELETE /api/germination-records/:id
+  // Remove germination record by ID
   async delete(req, res) {
     try {
       const { id } = req.params;

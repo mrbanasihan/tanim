@@ -2,6 +2,8 @@ const db = require("../db");
 const { KAFKA_STATUS } = require("../../constants/kafka");
 const { connectProducer } = require("./client");
 
+// publishEvent
+// Send Kafka event to topic and mark status as completed in database
 const publishEvent = async ({ eventId, topic, eventType, payload }) => {
   const producer = await connectProducer();
 

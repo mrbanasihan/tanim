@@ -1,6 +1,8 @@
 import React from "react";
 import Navbar from "./Navbar";
 
+// Layout
+// Main page layout wrapper that includes navigation and content container
 const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">

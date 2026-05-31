@@ -6,6 +6,7 @@ const {
   handleNotificationEvent,
 } = require("./kafkaEventHandlers");
 
+// Kafka consumer for tanim events (seeds, transactions, alerts); forwards events to audit service and maintains consumer state
 const KAFKA_TOPICS = ["tanim.seeds", "tanim.transactions", "tanim.alerts"];
 
 let kafka;
@@ -14,12 +15,16 @@ let consumerReady = false;
 let lastError = null;
 let lastEvent = null;
 
+// getBrokers
+// Parse Kafka broker addresses from environment variable
 const getBrokers = () =>
   (process.env.KAFKA_BROKERS || "")
     .split(",")
     .map((broker) => broker.trim())
     .filter(Boolean);
 
+// isEnabled
+// Parse environment variable as boolean (accepts: true, 1, yes, on)
 const isEnabled = (value) => {
   if (value === undefined) {
     return false;
@@ -28,6 +33,8 @@ const isEnabled = (value) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
+// readSecret
+// Read secret file from environment path or fallback locations
 const readSecret = (filePath, envValue, fallbackNames = []) => {
   if (envValue) {
     return envValue;
@@ -50,6 +57,8 @@ const readSecret = (filePath, envValue, fallbackNames = []) => {
   return undefined;
 };
 
+// getSslConfig
+// Build SSL/TLS configuration for Kafka connection from certificates
 const getSslConfig = () => {
   if (!isEnabled(process.env.KAFKA_SSL)) {
     return undefined;

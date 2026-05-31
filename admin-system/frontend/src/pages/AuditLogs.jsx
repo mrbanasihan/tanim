@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import api from "../services/api";
 import { getErrorMessage } from "../utils/errorMessage";
 
-const pageSize = 20;
-
+// AuditLogs
+// Displays paginated audit logs with search and action type filtering
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState({ total: 0, totalPages: 0, page: 1 });

@@ -2,6 +2,8 @@ const db = require("../services/db");
 const NotificationModel = require("./notificationModel");
 
 const GerminationRecordModel = {
+  // getAll
+  // Retrieve all germination records with optional seed_id filter
   async getAll(filters = {}) {
     let query = `
       SELECT gr.*, s.batch_name, s.crop_type, s.variety
@@ -22,6 +24,8 @@ const GerminationRecordModel = {
     return result.rows;
   },
 
+  // getBySeedId
+  // Fetch all germination records for seed with user information
   async getBySeedId(seedId) {
     const query = `
       SELECT gr.*, u.first_name, u.last_name
@@ -34,6 +38,8 @@ const GerminationRecordModel = {
     return result.rows;
   },
 
+  // getLatestBySeedId
+  // Get most recent germination test record for seed
   async getLatestBySeedId(seedId) {
     const query = `
       SELECT gr.*, u.first_name, u.last_name
@@ -47,6 +53,8 @@ const GerminationRecordModel = {
     return result.rows[0];
   },
 
+  // create
+  // Create new germination test record
   async create(data, userId) {
     const query = `
       INSERT INTO germination_record (

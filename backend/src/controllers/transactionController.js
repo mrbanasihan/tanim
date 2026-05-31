@@ -10,6 +10,7 @@ const {
 
 const TransactionController = {
   // GET /api/transactions/:id
+  // Retrieve single transaction by ID
   async getById(req, res) {
     try {
       const { id } = req.params;
@@ -27,6 +28,7 @@ const TransactionController = {
   },
 
   // GET /api/transactions
+  // Retrieve all transactions with optional filtering by seed, type, crop, date range
   async getAll(req, res) {
     try {
       const {
@@ -60,6 +62,7 @@ const TransactionController = {
   },
 
   // GET /api/seeds/:id/transactions
+  // Get all transactions for a specific seed with role-based access control
   async getBySeedId(req, res) {
     try {
       const { id } = req.params;
@@ -75,7 +78,8 @@ const TransactionController = {
     }
   },
 
-  // POST /api/transactions/check-out
+  // POST /api/transactions/checkout
+  // Create seed checkout transaction with recipient and purpose information
   async checkOut(req, res) {
     try {
       const {

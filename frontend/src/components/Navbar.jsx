@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 
+// Navbar
+// Navigation bar with links, crop group switcher, and user menu; interacts with AuthContext and manages crop group selection
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -18,11 +20,15 @@ const Navbar = () => {
     ? selectedCropGroup
     : user?.current_crop_group || availableCropGroups[0] || "legumes";
 
+  // handleLogout
+  // Logs out user and redirects to login page
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
+  // handleSwitchCropGroup
+  // Switches to different crop group and updates localStorage
   const handleSwitchCropGroup = (cropGroup) => {
     setSelectedCropGroup(cropGroup);
     // Store in localStorage for persistence

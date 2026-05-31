@@ -3,8 +3,12 @@ const { KAFKA_TOPICS } = require("../../constants/kafka");
 const { handleEvent } = require("../../handlers/kafka/eventHandlers");
 const { setKafkaState } = require("./state");
 
+// sleep
+// Utility function for async delay
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// shouldRetryStartup
+// Determine if Kafka startup error is transient and can be retried
 const shouldRetryStartup = (error) => {
   const message = String(error?.message || "");
 
@@ -18,6 +22,8 @@ const shouldRetryStartup = (error) => {
   );
 };
 
+// startConsumerOnce
+// Initialize Kafka consumer, subscribe to topics, and start message processing
 const startConsumerOnce = async () => {
   await ensureTopics();
   const consumer = await connectConsumer();

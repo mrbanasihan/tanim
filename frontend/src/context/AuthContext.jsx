@@ -3,6 +3,8 @@ import api from "../services/api";
 
 const AuthContext = createContext();
 
+// useAuth
+// Custom hook to access authentication context (user, login, logout, loading)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -11,6 +13,8 @@ export const useAuth = () => {
   return context;
 };
 
+// AuthProvider
+// Context provider for authentication state and user session management
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

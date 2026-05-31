@@ -23,6 +23,8 @@ const ensureSeedLotColumns = async () => {
 };
 
 const SeedModel = {
+  // getAll
+  // Retrieve all active seed lots with optional filtering and pagination
   async getAll(filters = {}) {
     try {
       await ensureSeedLotColumns();
@@ -82,6 +84,8 @@ const SeedModel = {
     }
   },
 
+  // getById
+  // Fetch single seed lot with project and storage area information
   async getById(seedId) {
     try {
       await ensureSeedLotColumns();
@@ -101,6 +105,8 @@ const SeedModel = {
     }
   },
 
+  // create
+  // Insert new seed lot with auto-generated batch name and event publishing to Kafka
   async create(data) {
     await ensureSeedLotColumns();
 
@@ -181,6 +187,8 @@ const SeedModel = {
     }
   },
 
+  // update
+  // Update seed lot details with consumption tracking and Kafka event publishing
   async update(seedId, data) {
     await ensureSeedLotColumns();
 
@@ -282,6 +290,8 @@ const SeedModel = {
     }
   },
 
+  // delete
+  // Soft delete seed lot by removing from database
   async delete(seedId) {
     const query = `
         DELETE FROM seed_lot

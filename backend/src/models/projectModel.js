@@ -56,7 +56,8 @@ const assignProjectCropGroups = async (client, projectId, groups) => {
 };
 
 const ProjectModel = {
-  // Get all projects
+  // ensureProjectCropGroupTable
+  // Initialize project_crop_group table and bootstrap legacy projects with default crop groups
   async getAll() {
     await ensureProjectCropGroupTable();
 
@@ -77,7 +78,8 @@ const ProjectModel = {
     return result.rows;
   },
 
-  // Get project by ID
+  // getById
+  // Retrieve single project with aggregated crop group assignments
   async getById(projectId) {
     await ensureProjectCropGroupTable();
 
@@ -98,7 +100,8 @@ const ProjectModel = {
     return result.rows[0];
   },
 
-  // Create new project
+  // create
+  // Insert new project with transactional crop group assignment
   async create(
     projectName,
     description,
@@ -145,7 +148,8 @@ const ProjectModel = {
     }
   },
 
-  // Update project
+  // update
+  // Update project fields and conditionally update crop group assignments
   async update(
     projectId,
     projectName,
@@ -195,7 +199,8 @@ const ProjectModel = {
     }
   },
 
-  // Delete project
+  // delete
+  // Remove project and cascade delete associated crop groups
   async delete(projectId) {
     const query = `DELETE FROM project WHERE project_id = $1 RETURNING project_id`;
     const result = await db.query(query, [projectId]);

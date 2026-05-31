@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 
+// TransactionHistory
+// Displays transaction history with filtering and sorting by type, seed lot, crop type, and variety
 const TransactionHistory = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
@@ -25,6 +27,8 @@ const TransactionHistory = () => {
     user?.role,
   );
 
+  // handleDeleteTransaction
+  // Deletes a transaction after user confirmation and refreshes transaction list
   const handleDeleteTransaction = async (transactionId) => {
     if (!canManageTransactionActions) return;
 
@@ -46,6 +50,8 @@ const TransactionHistory = () => {
     }
   };
 
+  // normalizeTransaction
+  // Normalizes transaction data structure from API response
   const normalizeTransaction = (transaction) => ({
     ...transaction,
     type: transaction.type || transaction.transaction_type,
@@ -53,11 +59,8 @@ const TransactionHistory = () => {
     seed_id: transaction.seed_id || transaction.seed_lot_id,
   });
 
-  useEffect(() => {
-    fetchDropdownData();
-    fetchTransactions();
-  }, [filters, sortType, sortOrder, user?.role, user?.crop_groups]);
-
+  // fetchDropdownData
+  // Fetches crop types and varieties for filter dropdowns
   const fetchDropdownData = async () => {
     try {
       const response = await api.get("/seeds");

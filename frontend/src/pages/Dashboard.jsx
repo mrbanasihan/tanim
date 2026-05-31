@@ -4,6 +4,8 @@ import api from "../services/api";
 import { filterByCropGroup } from "../utils/accessControl";
 import { getSelectedCropGroup } from "../constants/cropCatalog";
 
+// Dashboard
+// Main dashboard page displaying statistics, recent transactions, projects, and active users; interacts with seeds, projects, and transactions APIs
 function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -15,6 +17,8 @@ function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  // normalizeTransaction
+  // Normalizes transaction data structure from API response
   const normalizeTransaction = (transaction) => ({
     ...transaction,
     type: transaction.type || transaction.transaction_type,
@@ -32,14 +36,13 @@ function Dashboard() {
     user_last_name: transaction.user_last_name || transaction.last_name || "",
   });
 
-  // Enhanced function to get first and last name
+  // getUserFullName
+  // Extracts user full name from transaction data with fallback parsing
   const getUserFullName = (userData) => {
-    // If we have explicit first and last name fields
     if (userData.user_first_name && userData.user_last_name) {
       return `${userData.user_first_name} ${userData.user_last_name}`;
     }
 
-    // If we have a full name string, try to parse it
     const fullName = userData.user_name || userData.name;
     if (fullName && fullName !== "Unknown" && fullName !== "Unknown User") {
       const parts = fullName.trim().split(/\s+/);
@@ -52,14 +55,16 @@ function Dashboard() {
     return "Unknown User";
   };
 
-  // Get first name only
+  // getFirstName
+  // Extracts first name from user data
   const getFirstName = (userData) => {
     const fullName = getUserFullName(userData);
     if (fullName === "Unknown User") return fullName;
     return fullName.split(/\s+/)[0];
   };
 
-  // Get last name only
+  // getLastName
+  // Extracts last name from user data
   const getLastName = (userData) => {
     const fullName = getUserFullName(userData);
     if (fullName === "Unknown User") return "";
