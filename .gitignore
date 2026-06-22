@@ -4,3 +4,6 @@ readme.md
 *.sql
 *.yml
 test*
+SETUP.md
+CODE_ANALYSIS_REPORT.md
+SYSTEM_OVERVIEW.md
