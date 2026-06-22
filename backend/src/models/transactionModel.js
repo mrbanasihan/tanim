@@ -1,10 +1,4 @@
 const db = require("../services/db");
-const {
-  KAFKA_EVENTS,
-  KAFKA_TOPICS,
-  KAFKA_SOURCE_SYSTEM,
-} = require("../constants/kafka");
-const { createOutboxEvent } = require("../services/kafka/outboxService");
 
 const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD || 2);
 
@@ -151,39 +145,11 @@ const TransactionModel = {
 
       const transaction = transactionResult.rows[0];
 
-      await createOutboxEvent({
-        eventType: KAFKA_EVENTS.SEED_WITHDRAWAL,
-        topic: KAFKA_TOPICS.TRANSACTIONS,
-        payload: {
-          actor: userId,
-          transaction_id: transaction.transaction_id,
-          seed_id: seedId,
-          quantity: checkOutQuantity,
-          balance_after: newBalance,
-          recipient,
-          purpose,
-          affiliation,
-          contact,
-          remarks,
-        },
-        sourceSystem: KAFKA_SOURCE_SYSTEM,
-        client,
-      });
-
+      // Log low stock alert if needed
       if (newBalance <= LOW_STOCK_THRESHOLD) {
-        await createOutboxEvent({
-          eventType: KAFKA_EVENTS.LOW_STOCK_ALERT,
-          topic: KAFKA_TOPICS.ALERTS,
-          payload: {
-            actor: userId,
-            seed_id: seedId,
-            current_quantity: newBalance,
-            threshold: LOW_STOCK_THRESHOLD,
-            transaction_id: transaction.transaction_id,
-          },
-          sourceSystem: KAFKA_SOURCE_SYSTEM,
-          client,
-        });
+        console.log(
+          `Low stock alert for seed ${seedId}: ${newBalance}kg remaining`,
+        );
       }
 
       await client.query("COMMIT");
@@ -245,36 +211,11 @@ const TransactionModel = {
 
       const transaction = transactionResult.rows[0];
 
-      await createOutboxEvent({
-        eventType: KAFKA_EVENTS.SEED_DISPOSAL,
-        topic: KAFKA_TOPICS.TRANSACTIONS,
-        payload: {
-          actor: userId,
-          transaction_id: transaction.transaction_id,
-          seed_id: seedId,
-          quantity: disposeQuantity,
-          balance_after: newBalance,
-          purpose,
-          remarks,
-        },
-        sourceSystem: KAFKA_SOURCE_SYSTEM,
-        client,
-      });
-
+      // Log disposal and low stock alerts as needed
       if (newBalance <= LOW_STOCK_THRESHOLD) {
-        await createOutboxEvent({
-          eventType: KAFKA_EVENTS.LOW_STOCK_ALERT,
-          topic: KAFKA_TOPICS.ALERTS,
-          payload: {
-            actor: userId,
-            seed_id: seedId,
-            current_quantity: newBalance,
-            threshold: LOW_STOCK_THRESHOLD,
-            transaction_id: transaction.transaction_id,
-          },
-          sourceSystem: KAFKA_SOURCE_SYSTEM,
-          client,
-        });
+        console.log(
+          `Low stock alert for seed ${seedId}: ${newBalance}kg remaining after disposal`,
+        );
       }
 
       await client.query("COMMIT");

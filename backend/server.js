@@ -12,13 +12,6 @@ const transactionRoutes = require("./src/routes/transactionRoutes");
 const roomRoutes = require("./src/routes/roomRoutes");
 const germinationRecordRoutes = require("./src/routes/germinationRecordRoutes");
 const notificationRoutes = require("./src/routes/notificationRoutes");
-const { startConsumer } = require("./src/services/kafka/consumer");
-const {
-  startOutboxWorker,
-  stopOutboxWorker,
-} = require("./src/services/kafka/outboxWorker");
-const { disconnectKafka } = require("./src/services/kafka/client");
-const { getKafkaState } = require("./src/services/kafka/state");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -125,7 +118,6 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    kafka: getKafkaState(),
   });
 });
 
@@ -139,19 +131,8 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}`);
   console.log(
-    `Database target: ${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432} (ssl=${isEnabled(process.env.DB_SSL)})`,
+    `Database: ${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 5432}`,
   );
-  console.log(
-    `Kafka target: ${process.env.KAFKA_BROKERS || "localhost:9092"} (ssl=${isEnabled(process.env.KAFKA_SSL)}, autoCreateTopics=${process.env.KAFKA_AUTO_CREATE_TOPICS === undefined ? process.env.NODE_ENV !== "production" : isEnabled(process.env.KAFKA_AUTO_CREATE_TOPICS)})`,
-  );
-});
-
-startConsumer().catch((error) => {
-  console.error("Kafka consumer startup error:", error);
-});
-
-startOutboxWorker().catch((error) => {
-  console.error("Kafka outbox worker startup error:", error);
 });
 
 server.on("error", (error) => {
@@ -167,8 +148,6 @@ server.on("error", (error) => {
 });
 
 const shutdown = async () => {
-  stopOutboxWorker();
-  await disconnectKafka();
   process.exit(0);
 };
 

@@ -106,7 +106,7 @@ const GerminationRecordModel = {
     const seedResult = await db.query(seedQuery, [seedId]);
     const seedInfo = seedResult.rows[0];
 
-    // Publish notifications for each user to Kafka
+    // Create a reminder notification for each eligible user
     for (const user of usersResult.rows) {
       await NotificationModel.createGerminationReminder(
         user.user_id,

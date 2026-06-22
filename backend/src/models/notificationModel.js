@@ -1,10 +1,4 @@
 const db = require("../services/db");
-const {
-  KAFKA_EVENTS,
-  KAFKA_TOPICS,
-  KAFKA_SOURCE_SYSTEM,
-} = require("../constants/kafka");
-const { createOutboxEvent } = require("../services/kafka/outboxService");
 
 const NotificationModel = {
   // getByUserId
@@ -80,19 +74,19 @@ const NotificationModel = {
     payload = {},
     client,
   }) {
-    return createOutboxEvent({
-      eventType: KAFKA_EVENTS.NOTIFICATION_CREATED,
-      topic: KAFKA_TOPICS.ALERTS,
-      payload: {
-        user_id: userId,
-        notification_type: notificationType,
-        message,
-        seed_id: seedId,
-        ...payload,
-      },
-      sourceSystem: KAFKA_SOURCE_SYSTEM,
-      client,
-    });
+    const executor = client || db;
+    const query = `
+      INSERT INTO notification (notification_id, user_id, notification_type, message, seed_id, is_read, created_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, false, NOW())
+      RETURNING *
+    `;
+    const result = await executor.query(query, [
+      userId,
+      notificationType,
+      message,
+      seedId || null,
+    ]);
+    return result.rows[0];
   },
 
   async createGerminationReminder(userId, seedId, message, client) {

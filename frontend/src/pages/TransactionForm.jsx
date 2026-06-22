@@ -95,18 +95,17 @@ const TransactionForm = () => {
   // handleChange
   // Updates form data and syncs selected seed quantity
   const handleChange = (e) => {
-      try {
-        const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
-        if (selectedSeed) {
-          const quantity = selectedSeed.current_quantity || 0;
-          setSelectedSeedQuantity(parseFloat(quantity));
-        } else {
-          setSelectedSeedQuantity(0);
-        }
-      } catch (error) {
-        console.error("Error setting seed quantity:", error);
+    try {
+      const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
+      if (selectedSeed) {
+        const quantity = selectedSeed.current_quantity || 0;
+        setSelectedSeedQuantity(parseFloat(quantity));
+      } else {
         setSelectedSeedQuantity(0);
       }
+    } catch (error) {
+      console.error("Error setting seed quantity:", error);
+      setSelectedSeedQuantity(0);
     }
   };
 

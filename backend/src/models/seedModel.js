@@ -1,10 +1,4 @@
 const db = require("../services/db");
-const {
-  KAFKA_EVENTS,
-  KAFKA_TOPICS,
-  KAFKA_SOURCE_SYSTEM,
-} = require("../constants/kafka");
-const { createOutboxEvent } = require("../services/kafka/outboxService");
 
 const ensureSeedLotColumns = async () => {
   await db.query(`
@@ -160,23 +154,6 @@ const SeedModel = {
 
       const seed = result.rows[0];
 
-      await createOutboxEvent({
-        eventType: KAFKA_EVENTS.SEED_REGISTERED,
-        topic: KAFKA_TOPICS.SEEDS,
-        payload: {
-          actor: data.created_by,
-          seed_id: seed.seed_id,
-          project_id: seed.project_id,
-          crop_type: seed.crop_type,
-          variety: seed.variety,
-          classification: seed.classification,
-          gross_weight: seed.gross_weight,
-          current_quantity: seed.current_quantity,
-        },
-        sourceSystem: KAFKA_SOURCE_SYSTEM,
-        client,
-      });
-
       await client.query("COMMIT");
       return seed;
     } catch (error) {
@@ -262,22 +239,7 @@ const SeedModel = {
       const seed = result.rows[0];
 
       if (seed) {
-        await createOutboxEvent({
-          eventType: KAFKA_EVENTS.SEED_UPDATED,
-          topic: KAFKA_TOPICS.SEEDS,
-          payload: {
-            actor: data.updated_by || data.created_by || null,
-            seed_id: seed.seed_id,
-            project_id: seed.project_id,
-            crop_type: seed.crop_type,
-            variety: seed.variety,
-            classification: seed.classification,
-            gross_weight: seed.gross_weight,
-            current_quantity: seed.current_quantity,
-          },
-          sourceSystem: KAFKA_SOURCE_SYSTEM,
-          client,
-        });
+        // Seed updated successfully
       }
 
       await client.query("COMMIT");
