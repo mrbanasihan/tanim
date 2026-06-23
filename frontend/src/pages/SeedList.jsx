@@ -185,6 +185,8 @@ const SeedList = () => {
 
   const fetchDropdownData = async () => {
     try {
+      console.log("🔍 Fetching dropdown data...");
+
       const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
       const [seedsRes, projectsRes] = await Promise.all([
         api.get("/seeds"),
@@ -193,18 +195,27 @@ const SeedList = () => {
         ),
       ]);
 
+      console.log("📦 Seeds response:", seedsRes.data);
+      console.log("📦 Projects response:", projectsRes.data);
+
       // Get unique crop types
       let seedsData = seedsRes.data || [];
+      console.log("📋 Raw seedsData:", seedsData);
+
       seedsData = filterByCropGroup(seedsData, user?.role, user?.crop_groups);
+      console.log("📋 Filtered seedsData:", seedsData);
+
       const uniqueCropTypes = [
         ...new Set(seedsData.map((seed) => seed.crop_type).filter(Boolean)),
       ].sort();
+      console.log("🌾 Unique crop types:", uniqueCropTypes);
       setCropTypes(uniqueCropTypes);
 
       // Get unique varieties
       const uniqueVarieties = [
         ...new Set(seedsData.map((seed) => seed.variety).filter(Boolean)),
       ].sort();
+      console.log("🌱 Unique varieties:", uniqueVarieties);
       setVarieties(uniqueVarieties);
 
       const nextCropVarietyMap = {};

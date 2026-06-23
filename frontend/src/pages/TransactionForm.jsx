@@ -95,17 +95,25 @@ const TransactionForm = () => {
   // handleChange
   // Updates form data and syncs selected seed quantity
   const handleChange = (e) => {
-    try {
+    const { name, value } = e.target;
+
+    // Handle contact number formatting
+    let formattedValue = value;
+    if (name === "contact") {
+      formattedValue = value.replace(/\D/g, "").slice(0, 11);
+    }
+
+    // Update form data
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+
+    // Update selected seed quantity when seed_id changes
+    if (name === "seed_id" && value) {
       const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
       if (selectedSeed) {
-        const quantity = selectedSeed.current_quantity || 0;
-        setSelectedSeedQuantity(parseFloat(quantity));
+        setSelectedSeedQuantity(parseFloat(selectedSeed.current_quantity || 0));
       } else {
         setSelectedSeedQuantity(0);
       }
-    } catch (error) {
-      console.error("Error setting seed quantity:", error);
-      setSelectedSeedQuantity(0);
     }
   };
 
@@ -198,11 +206,20 @@ const TransactionForm = () => {
               onChange={handleChange}
               required
               disabled={isEditing}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isEditing
+                  ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                  : "bg-white"
+              }`}
             >
               <option value="check-out">Check Out</option>
               {!isGuest && <option value="disposal">Disposal</option>}
             </select>
+            {isEditing && (
+              <p className="text-xs text-gray-500 mt-1">
+                Transaction type cannot be changed after creation.
+              </p>
+            )}
           </div>
 
           <div>
@@ -215,7 +232,11 @@ const TransactionForm = () => {
               onChange={handleChange}
               required
               disabled={isEditing}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isEditing
+                  ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                  : "bg-white"
+              }`}
             >
               <option value="">Select a seed lot</option>
               {seedLots.map((seed) => (
@@ -225,6 +246,11 @@ const TransactionForm = () => {
                 </option>
               ))}
             </select>
+            {isEditing && (
+              <p className="text-xs text-gray-500 mt-1">
+                Seed lot cannot be changed after transaction is created.
+              </p>
+            )}
           </div>
 
           <div>
@@ -241,8 +267,17 @@ const TransactionForm = () => {
               step="0.01"
               inputMode="decimal"
               readOnly={isEditing}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isEditing
+                  ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                  : "bg-white"
+              }`}
             />
+            {isEditing && (
+              <p className="text-xs text-gray-500 mt-1">
+                Quantity cannot be changed after transaction is created.
+              </p>
+            )}
           </div>
 
           {formData.seed_id && (

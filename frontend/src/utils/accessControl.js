@@ -1,3 +1,5 @@
+import { CROP_GROUPS, CROP_CATALOG } from "../constants/cropCatalog";
+
 // canAccessFeature
 // Check if user role has permission for specific feature
 export const canAccessFeature = (userRole, feature) => {
@@ -68,21 +70,37 @@ export const getVisibleCropTypes = (userRole, cropGroups, allCropTypes) => {
 // Filter items by crop group based on user role and permissions
 export const filterByCropGroup = (items, userRole, cropGroups) => {
   const inputItems = Array.isArray(items) ? items : [];
+  const groups = Array.isArray(cropGroups) ? cropGroups : [];
 
+  // Get the currently selected crop group from localStorage
+  const selectedGroup = localStorage.getItem("selectedCropGroup");
+
+  // For admin: if they have a selected group, filter by it; otherwise show all
+  if (userRole === "admin") {
+    // If admin has a selected crop group, filter by it
+    if (selectedGroup && CROP_GROUPS.includes(selectedGroup)) {
+      const visibleCrops = new Set();
+      Object.keys(CROP_CATALOG[selectedGroup] || {}).forEach((crop) => {
+        visibleCrops.add(crop);
+      });
+      return inputItems.filter((item) => visibleCrops.has(item.crop_type));
+    }
+    // No selected group - show all seeds
+    return inputItems;
+  }
+
+  // Non-admin users: filter by their assigned crop groups
   const allowedGroups =
-    userRole === "admin"
-      ? CROP_GROUPS
-      : Array.isArray(cropGroups) && cropGroups.length > 0
-        ? cropGroups.filter((group) => CROP_GROUPS.includes(group))
-        : ["researcher", "staff"].includes(userRole)
-          ? ["legumes"]
-          : [];
+    groups.length > 0
+      ? groups.filter((group) => CROP_GROUPS.includes(group))
+      : ["researcher", "staff"].includes(userRole)
+        ? ["legumes"]
+        : [];
 
   if (allowedGroups.length === 0) {
     return [];
   }
 
-  const selectedGroup = getSelectedCropGroup(userRole, allowedGroups);
   const effectiveGroups =
     selectedGroup && allowedGroups.includes(selectedGroup)
       ? [selectedGroup]

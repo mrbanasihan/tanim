@@ -176,6 +176,10 @@ const TransactionHistory = () => {
     }
   };
 
+  useEffect(() => {
+    fetchTransactions();
+  }, [filters, sortType, sortOrder]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => {

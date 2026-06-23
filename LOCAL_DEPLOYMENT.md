@@ -283,6 +283,18 @@ kill -9 <PID>
    ```
 3. Check backend logs for authentication errors
 
+### Backend Permission Denied to Login
+
+**Problem**: Database doesn't grand permission to backend
+
+**Solution**:
+
+1. Run these commands in psql:
+   `GRANT ALL PRIVILEGES ON "user" TO postgres;`
+   `GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;`
+   `GRANT USAGE ON SCHEMA public TO postgres;`
+   `GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;`
+
 ---
 
 ## Performance Tips
