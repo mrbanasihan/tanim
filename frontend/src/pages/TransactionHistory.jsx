@@ -19,6 +19,9 @@ const TransactionHistory = () => {
   });
   const [sortType, setSortType] = useState("name"); // name, date, quantity
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
+  const [checkoutPage, setCheckoutPage] = useState(1);
+  const [disposalPage, setDisposalPage] = useState(1);
+  const itemsPerPage = 10;
   const [cropTypes, setCropTypes] = useState([]);
   const [varieties, setVarieties] = useState([]);
   const [cropVarietyMap, setCropVarietyMap] = useState({});
@@ -180,6 +183,11 @@ const TransactionHistory = () => {
     fetchTransactions();
   }, [filters, sortType, sortOrder]);
 
+  useEffect(() => {
+    setCheckoutPage(1);
+    setDisposalPage(1);
+  }, [filters, sortType, sortOrder]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => {
@@ -208,6 +216,83 @@ const TransactionHistory = () => {
   if (loading) {
     return <div className="text-center py-8">Loading...</div>;
   }
+
+  const checkoutTransactions = transactions.filter((t) => t.type === "outgoing");
+  const disposalTransactions = transactions.filter((t) => t.type === "disposal");
+
+  // Checkout pagination helpers
+  const totalCheckout = checkoutTransactions.length;
+  const totalCheckoutPages = Math.ceil(totalCheckout / itemsPerPage);
+  const checkoutStartIndex = (checkoutPage - 1) * itemsPerPage;
+  const currentCheckoutTransactions = checkoutTransactions.slice(
+    checkoutStartIndex,
+    checkoutStartIndex + itemsPerPage
+  );
+
+  // Disposal pagination helpers
+  const totalDisposal = disposalTransactions.length;
+  const totalDisposalPages = Math.ceil(totalDisposal / itemsPerPage);
+  const disposalStartIndex = (disposalPage - 1) * itemsPerPage;
+  const currentDisposalTransactions = disposalTransactions.slice(
+    disposalStartIndex,
+    disposalStartIndex + itemsPerPage
+  );
+
+  const getCheckoutPageNumbers = () => {
+    const pages = [];
+    if (totalCheckoutPages <= 5) {
+      for (let i = 1; i <= totalCheckoutPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (checkoutPage <= 3) {
+        pages.push(2);
+        pages.push(3);
+        pages.push("...");
+        pages.push(totalCheckoutPages);
+      } else if (checkoutPage >= totalCheckoutPages - 2) {
+        pages.push("...");
+        pages.push(totalCheckoutPages - 2);
+        pages.push(totalCheckoutPages - 1);
+        pages.push(totalCheckoutPages);
+      } else {
+        pages.push("...");
+        pages.push(checkoutPage);
+        pages.push("...");
+        pages.push(totalCheckoutPages);
+      }
+    }
+    return pages;
+  };
+
+  const getDisposalPageNumbers = () => {
+    const pages = [];
+    if (totalDisposalPages <= 5) {
+      for (let i = 1; i <= totalDisposalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (disposalPage <= 3) {
+        pages.push(2);
+        pages.push(3);
+        pages.push("...");
+        pages.push(totalDisposalPages);
+      } else if (disposalPage >= totalDisposalPages - 2) {
+        pages.push("...");
+        pages.push(totalDisposalPages - 2);
+        pages.push(totalDisposalPages - 1);
+        pages.push(totalDisposalPages);
+      } else {
+        pages.push("...");
+        pages.push(disposalPage);
+        pages.push("...");
+        pages.push(totalDisposalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
@@ -546,19 +631,16 @@ const TransactionHistory = () => {
           ) : (
             <div className="space-y-8">
               {(filters.type === "" || filters.type === "outgoing") &&
-                transactions.filter((t) => t.type === "outgoing").length >
-                  0 && (
+                totalCheckout > 0 && (
                   <div>
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-slate-900">
                         Check-out Transactions
                       </h3>
                       <span className="text-sm text-slate-500">
-                        {
-                          transactions.filter((t) => t.type === "outgoing")
-                            .length
-                        }{" "}
-                        records
+                        Showing {totalCheckout > 0 ? checkoutStartIndex + 1 : 0} to{" "}
+                        {Math.min(checkoutStartIndex + itemsPerPage, totalCheckout)} of{" "}
+                        {totalCheckout} records
                       </span>
                     </div>
                     <div className="overflow-x-auto rounded-3xl border border-slate-200">
@@ -597,9 +679,7 @@ const TransactionHistory = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
-                          {transactions
-                            .filter((t) => t.type === "outgoing")
-                            .map((transaction) => (
+                          {currentCheckoutTransactions.map((transaction) => (
                               <tr
                                 key={transaction.id}
                                 className="hover:bg-slate-50"
@@ -665,81 +745,120 @@ const TransactionHistory = () => {
                         </tbody>
                       </table>
                     </div>
+
+                    {totalCheckoutPages > 1 && (
+                      <div className="mt-4 flex justify-between items-center bg-white px-4 py-3 rounded-lg border border-slate-200">
+                        <div className="flex-1 flex justify-between sm:hidden">
+                          <button
+                            onClick={() => setCheckoutPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={checkoutPage === 1}
+                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            onClick={() => setCheckoutPage((prev) => Math.min(prev + 1, totalCheckoutPages))}
+                            disabled={checkoutPage === totalCheckoutPages}
+                            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm text-gray-700">
+                              Page <span className="font-medium">{checkoutPage}</span> of{" "}
+                              <span className="font-medium">{totalCheckoutPages}</span>
+                            </p>
+                          </div>
+                          <div>
+                            <nav
+                              className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                              aria-label="Pagination"
+                            >
+                              <button
+                                onClick={() => setCheckoutPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={checkoutPage === 1}
+                                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="sr-only">Previous</span>
+                                <svg
+                                  className="h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                              {getCheckoutPageNumbers().map((page, idx) => (
+                                page === "..." ? (
+                                  <span
+                                    key={`ellipsis-checkout-${idx}`}
+                                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500"
+                                  >
+                                    ...
+                                  </span>
+                                ) : (
+                                  <button
+                                    key={page}
+                                    onClick={() => setCheckoutPage(page)}
+                                    aria-current={checkoutPage === page ? "page" : undefined}
+                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition ${
+                                      checkoutPage === page
+                                        ? "z-10 bg-blue-600 border-blue-600 text-white"
+                                        : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {page}
+                                  </button>
+                                )
+                              ))}
+                              <button
+                                onClick={() => setCheckoutPage((prev) => Math.min(prev + 1, totalCheckoutPages))}
+                                disabled={checkoutPage === totalCheckoutPages}
+                                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="sr-only">Next</span>
+                                <svg
+                                  className="h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            </nav>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-              {/* Check-in transactions removed */}
-              {false && (
-                <div>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Check-in Transactions
-                    </h3>
-                    <span className="text-sm text-slate-500">{0} records</span>
-                  </div>
-                  <div className="overflow-x-auto rounded-3xl border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200 table-auto">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                            Batch Name
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                            Quantity
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                            Remarks
-                          </th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
-                            Date
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 bg-white">
-                        {transactions
-                          .filter((t) => t.type === "incoming")
-                          .map((transaction) => (
-                            <tr
-                              key={transaction.id}
-                              className="hover:bg-slate-50"
-                            >
-                              <td className="px-4 py-3 text-sm text-slate-700">
-                                {transaction.batch_name || transaction.seed_id}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-slate-700">
-                                {transaction.quantity}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-slate-700">
-                                {transaction.remarks || "-"}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-slate-700">
-                                {new Date(
-                                  transaction.created_at,
-                                ).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
               {user?.role !== "guest" &&
                 (filters.type === "" || filters.type === "disposal") &&
-                transactions.filter((t) => t.type === "disposal").length >
-                  0 && (
+                totalDisposal > 0 && (
                   <div>
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-slate-900">
                         Disposal Transactions
                       </h3>
                       <span className="text-sm text-slate-500">
-                        {
-                          transactions.filter((t) => t.type === "disposal")
-                            .length
-                        }{" "}
-                        records
+                        Showing {totalDisposal > 0 ? disposalStartIndex + 1 : 0} to{" "}
+                        {Math.min(disposalStartIndex + itemsPerPage, totalDisposal)} of{" "}
+                        {totalDisposal} records
                       </span>
                     </div>
                     <div className="overflow-x-auto rounded-3xl border border-slate-200">
@@ -769,9 +888,7 @@ const TransactionHistory = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
-                          {transactions
-                            .filter((t) => t.type === "disposal")
-                            .map((transaction) => (
+                          {currentDisposalTransactions.map((transaction) => (
                               <tr
                                 key={transaction.id}
                                 className="hover:bg-slate-50"
@@ -824,6 +941,105 @@ const TransactionHistory = () => {
                         </tbody>
                       </table>
                     </div>
+
+                    {totalDisposalPages > 1 && (
+                      <div className="mt-4 flex justify-between items-center bg-white px-4 py-3 rounded-lg border border-slate-200">
+                        <div className="flex-1 flex justify-between sm:hidden">
+                          <button
+                            onClick={() => setDisposalPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={disposalPage === 1}
+                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            onClick={() => setDisposalPage((prev) => Math.min(prev + 1, totalDisposalPages))}
+                            disabled={disposalPage === totalDisposalPages}
+                            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm text-gray-700">
+                              Page <span className="font-medium">{disposalPage}</span> of{" "}
+                              <span className="font-medium">{totalDisposalPages}</span>
+                            </p>
+                          </div>
+                          <div>
+                            <nav
+                              className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                              aria-label="Pagination"
+                            >
+                              <button
+                                onClick={() => setDisposalPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={disposalPage === 1}
+                                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="sr-only">Previous</span>
+                                <svg
+                                  className="h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                              {getDisposalPageNumbers().map((page, idx) => (
+                                page === "..." ? (
+                                  <span
+                                    key={`ellipsis-disposal-${idx}`}
+                                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500"
+                                  >
+                                    ...
+                                  </span>
+                                ) : (
+                                  <button
+                                    key={page}
+                                    onClick={() => setDisposalPage(page)}
+                                    aria-current={disposalPage === page ? "page" : undefined}
+                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition ${
+                                      disposalPage === page
+                                        ? "z-10 bg-blue-600 border-blue-600 text-white"
+                                        : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {page}
+                                  </button>
+                                )
+                              ))}
+                              <button
+                                onClick={() => setDisposalPage((prev) => Math.min(prev + 1, totalDisposalPages))}
+                                disabled={disposalPage === totalDisposalPages}
+                                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="sr-only">Next</span>
+                                <svg
+                                  className="h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            </nav>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
             </div>
