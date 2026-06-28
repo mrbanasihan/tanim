@@ -157,7 +157,14 @@ const TransactionHistory = () => {
     try {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value) {
+          if (key === "seed_lot_id") {
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+            if (isValidUUID) params.append(key, value);
+          } else {
+            params.append(key, value);
+          }
+        }
       });
       const response = await api.get(`/transactions?${params}`);
       let transactionsData = filterByCropGroup(
@@ -178,6 +185,10 @@ const TransactionHistory = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
 
   useEffect(() => {
     fetchTransactions();
@@ -217,8 +228,31 @@ const TransactionHistory = () => {
     return <div className="text-center py-8">Loading...</div>;
   }
 
-  const checkoutTransactions = transactions.filter((t) => t.type === "outgoing");
-  const disposalTransactions = transactions.filter((t) => t.type === "disposal");
+  // Apply client-side filtering if search is not a UUID
+  const getFilteredTransactions = () => {
+    const term = (filters.seed_lot_id || "").trim().toLowerCase();
+    if (!term) return transactions;
+
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term);
+    if (isValidUUID) return transactions; // Backend already filtered it
+
+    return transactions.filter((t) => {
+      return (
+        (t.batch_name && t.batch_name.toLowerCase().includes(term)) ||
+        (t.recipient && t.recipient.toLowerCase().includes(term)) ||
+        (t.purpose && t.purpose.toLowerCase().includes(term)) ||
+        (t.affiliation && t.affiliation.toLowerCase().includes(term)) ||
+        (t.remarks && t.remarks.toLowerCase().includes(term)) ||
+        (t.crop_type && t.crop_type.toLowerCase().includes(term)) ||
+        (t.variety && t.variety.toLowerCase().includes(term))
+      );
+    });
+  };
+
+  const filteredTransactions = getFilteredTransactions();
+
+  const checkoutTransactions = filteredTransactions.filter((t) => t.type === "outgoing");
+  const disposalTransactions = filteredTransactions.filter((t) => t.type === "disposal");
 
   // Checkout pagination helpers
   const totalCheckout = checkoutTransactions.length;
