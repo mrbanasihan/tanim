@@ -214,6 +214,51 @@ const TransactionController = {
     }
   },
 
+  // GET /api/transactions/recent
+  // Returns the 10 most recent transactions; supports optional ?crop_group filter
+  async getRecent(req, res) {
+    try {
+      const { crop_group } = req.query;
+      const transactions = await TransactionModel.getAll({
+        crop_type: undefined,
+        type: undefined,
+        userRole: req.user?.role,
+        userId: req.user?.userId,
+      });
+
+      const limited = transactions.slice(0, 10);
+
+      const result = limited.map((t) => ({
+        type: t.transaction_type || t.type,
+        seed_lot: t.batch_name || t.seed_id || t.seed_lot_id,
+        quantity: t.quantity,
+        date: t.created_at
+          ? new Date(t.created_at).toISOString().slice(0, 10)
+          : null,
+        user:
+          t.user_name ||
+          (t.first_name && t.last_name
+            ? `${t.first_name} ${t.last_name}`
+            : null) ||
+          "Unknown User",
+        crop_group: t.crop_type || null,
+      }));
+
+      // Optional client-provided crop_group filter
+      const filtered = crop_group
+        ? result.filter(
+            (r) =>
+              (r.crop_group || "").toLowerCase() === crop_group.toLowerCase(),
+          )
+        : result;
+
+      res.json(filtered);
+    } catch (error) {
+      console.error("Get recent transactions error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   // DELETE /api/transactions/:id
   async delete(req, res) {
     try {

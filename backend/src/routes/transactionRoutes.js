@@ -6,6 +6,7 @@ const { authorize } = require("../middleware/roleMiddleware");
 const router = express.Router();
 
 router.get("/", authenticate, TransactionController.getAll);
+router.get("/recent", authenticate, TransactionController.getRecent);
 router.get(
   "/:id",
   authenticate,
