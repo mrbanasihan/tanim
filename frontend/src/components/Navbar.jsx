@@ -69,35 +69,20 @@ const Navbar = () => {
       className="sticky top-0 z-50 animate-slide-down shadow-lg"
       style={{
         height: "68px",
-        background:
-          "linear-gradient(90deg, #116B2B 0%, #237F18 60%, #FFFF00 100%)",
-      }} >
-      <div className="mx-auto" style={{ padding: "0 32px", maxWidth: "1440px", }} >
-        <div className="flex justify-between items-center h-full">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link
-                  to="/"
-                  className="flex items-center gap-3 text-white"
-                >
-                  {/* LOGO PLACEMENT HERE!! */}
-                  <div className="w-8 h-8 rounded-full border-2 border-white"></div>
-                <span className="text-2xl font-bold tracking-wide text-white">
-                  TANIM
-                </span>
-              </Link>
-            </div>
-        
-            <div
-              className="hidden md:flex items-center"
-              style={{ gap: "32px", marginLeft: "40px" }}
-            >
+        background: "linear-gradient(90deg, #116B2B 0%, #237F18 60%, #c8b400 100%)",
+      }}>
+      <div className="mx-auto flex items-center justify-between h-full" style={{ padding: "0 32px", maxWidth: "1440px" }}>
+        {/* LOGO */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center gap-2 text-white no-underline shrink-0">
+              <span className="text-xl font-bold tracking-widest text-white">TANIM</span>
+            </Link>
+
+            <div className="hidden md:flex items-center" style={{ gap: "28px", marginLeft: "36px" }}>
               <Link
                 to="/"
-               className={`relative text-base font-medium transition-all duration-200 ${
-                    isActive("/")
-                    ? "text-white border-b-2 border-white"
-                    : "text-white/75 hover:text-white"
+                className={`no-underline text-sm font-medium transition-all duration-200 pb-0.5 border-b-2 ${
+                  isActive("/") ? "text-white border-white font-semibold" : "text-white/70 border-transparent hover:text-white"
                 }`}>
                 Dashboard
               </Link>
@@ -105,10 +90,8 @@ const Navbar = () => {
               {user?.role !== "guest" && canAccessFeature("seeds") && (
                 <Link
                   to="/seeds"
-                  className={`relative text-base font-medium transition-all duration-200 ${
-                    isActive("/seeds")
-                      ? "text-white border-b-2 border-white"
-                      : "text-white/75 hover:text-white"
+                  className={`no-underline text-sm font-medium transition-all duration-200 pb-0.5 border-b-2 ${
+                    isActive("/seeds") ? "text-white border-white font-semibold" : "text-white/70 border-transparent hover:text-white"
                   }`}>
                   Seed Lots
                 </Link>
@@ -117,10 +100,8 @@ const Navbar = () => {
               {canAccessFeature("transactions") && (
                 <Link
                   to="/transactions"
-                  className={`relative text-base font-medium transition-all duration-200 ${
-                    isActive("/transactions")
-                      ? "text-white border-b-2 border-white"
-                      : "text-white/75 hover:text-white"
+                  className={`no-underline text-sm font-medium transition-all duration-200 pb-0.5 border-b-2 ${
+                    isActive("/transactions") ? "text-white border-white font-semibold" : "text-white/70 border-transparent hover:text-white"
                   }`}>
                   Transactions
                 </Link>
@@ -129,40 +110,49 @@ const Navbar = () => {
               {canAccessReports() && (
                 <Link
                   to="/reports"
-                 className={`relative text-base font-medium transition-all duration-200 ${
-                    isActive("/reports")
-                      ? "text-white border-b-2 border-white"
-                      : "text-white/75 hover:text-white"
+                  className={`no-underline text-sm font-medium transition-all duration-200 pb-0.5 border-b-2 ${
+                    isActive("/reports") ? "text-white border-white font-semibold" : "text-white/70 border-transparent hover:text-white"
                   }`}>
                   Reports
                 </Link>
               )}
             </div>
           </div>
-          <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+
+          {/* RIGHT */}
+          <div className="hidden md:flex items-center" style={{ gap: "12px" }}>
             {showNotificationBell() && 
-              <div className="w-8 h-8 flex items-center justify-center">
+              <div className="relative flex items-center justify-center">
                 <NotificationBell />
               </div>
             }
             <div
-              className="relative py-2"
+              className="relative"
               onMouseEnter={() => setShowUserMenu(true)}
               onMouseLeave={() => setShowUserMenu(false)}
             >
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md cursor-pointer hover:bg-white/20 transition-all duration-200">
-                <div className="w-8 h-8 bg-[#FFFFC7] rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">👨🏻‍💼</span>
+              {/* USER */}
+              <div
+                className="flex items-center gap-2.5 cursor-pointer rounded-lg px-3 py-1.5 transition-all duration-200"
+                style={{ background: "rgba(0,0,0,0.25)", backdropFilter: "blur(6px)" }}
+              >
+                {/* AVATAR */}
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-[11px]"
+                  style={{ background: "#FFFF00", color: "#116B2B" }}
+                >
+                  {(user?.name || user?.email || "U").charAt(0).toUpperCase()}
                 </div>
-                <div className="text-sm">
-                  <p className="text-white/75 text-xs">
-                      Welcome back
-                  </p>
-
-                  <p className="text-[#116B2B] font-bold">
+                <div className="leading-tight">
+                  <p className="text-white/55 text-[10px] uppercase tracking-wider">Logged in as</p>
+                  <p className="text-white font-semibold text-xs">
                     {user?.name || user?.email?.split("@")[0] || "User"}
                   </p>
                 </div>
+                {/* Dropdown chevron */}
+                <svg className="w-3 h-3 text-white/50 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             {/* Drop down Crop groups */}
             {showUserMenu && (
@@ -170,8 +160,8 @@ const Navbar = () => {
 
                 {showCropGroupSwitcher && (
                   <div className="px-4 py-3 border-b border-white/10">
-                    <p className="text-xs uppercase tracking-wide text-green-200 font-semibold mb-2">
-                      Crop Group
+                    <p className="text-xs uppercase tracking-widest text-white font-bold mb-2">
+                      Crop Groups
                     </p>
 
                     <div className="space-y-1">
@@ -201,15 +191,15 @@ const Navbar = () => {
 
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-3 text-red-300 hover:bg-white/10 hover:text-red-200 transition-all duration-200"
+                  className="w-full text-left px-4 py-3 font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
                 >
-                  Logout
+                LOG OUT
                 </button>
               </div>
             )}
             </div>
           </div>
-        </div>
+        {/* ── End desktop row ───────────────────────────────────────── */}
 
         {/* Mobile menu button - only visible on mobile */}
         <div className="md:hidden absolute top-4 right-4">

@@ -73,66 +73,77 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const initialGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
-        if (initialGroup) setSelectedGroup(initialGroup);
-
-        const [seedsRes, projectsRes, transactionsRes] = await Promise.all([
-          api.get("/seeds"),
-          api.get(
-            initialGroup
-              ? `/projects?crop_group=${initialGroup}`
-              : "/projects",
-          ),
-          api.get("/transactions?limit=10"),
-        ]);
-
-        const filteredSeeds = filterByCropGroup(
-          seedsRes.data || [],
-          user?.role,
-          user?.crop_groups,
-        );
-        const transactions = filterByCropGroup(
-          (transactionsRes.data || []).map(normalizeTransaction),
-          user?.role,
-          user?.crop_groups,
-        );
-
-        const uniqueUsers = Array.from(
-          new Map(
-            transactions.map((t) => [
-              t.user_email || t.created_by || `user-${t.id}`,
-              {
-                id: t.user_email || t.created_by || `user-${t.id}`,
-                firstName: getFirstName(t),
-                lastName: getLastName(t),
-                fullName: getUserFullName(t),
-                email: t.user_email,
-                lastActivity: t.created_at,
-                transactionCount: 1,
-                transactionType: t.type,
-              },
-            ]),
-          ).values(),
-        ).slice(0, 5);
-
-        setStats({
-          totalSeeds: filteredSeeds.length,
-          totalProjects: projectsRes.data.length,
-          recentTransactions: transactions,
-          projects: projectsRes.data.filter((p) => p.status !== "completed"),
-          activeUsers: uniqueUsers,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+    // On mount: read the crop group from localStorage / user defaults
+    const initialGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
+    if (initialGroup) {
+      setSelectedGroup(initialGroup);
+    } else {
+      // No group restriction — fetch all immediately
+      fetchDashboardData("all");
+    }
   }, [user?.role, user?.crop_groups]);
+
+  // Re-fetch whenever selectedGroup changes
+  useEffect(() => {
+    if (selectedGroup) {
+      fetchDashboardData(selectedGroup);
+    }
+  }, [selectedGroup]);
+
+  // fetchDashboardData
+  // Fetches seeds, projects, and transactions filtered by the active crop group
+  const fetchDashboardData = async (group) => {
+    setLoading(true);
+    try {
+      const [seedsRes, projectsRes, transactionsRes] = await Promise.all([
+        api.get("/seeds"),
+        api.get(group && group !== "all" ? `/projects?crop_group=${group}` : "/projects"),
+        api.get("/transactions?limit=10"),
+      ]);
+
+      const allSeeds = seedsRes.data || [];
+      const filteredSeeds =
+        group && group !== "all"
+          ? allSeeds.filter((s) => s.crop_group === group)
+          : filterByCropGroup(allSeeds, user?.role, user?.crop_groups);
+
+      const allTx = (transactionsRes.data || []).map(normalizeTransaction);
+      const transactions =
+        group && group !== "all"
+          ? allTx.filter((t) => t.crop_group === group)
+          : filterByCropGroup(allTx, user?.role, user?.crop_groups);
+
+      const uniqueUsers = Array.from(
+        new Map(
+          transactions.map((t) => [
+            t.user_email || t.created_by || `user-${t.id}`,
+            {
+              id: t.user_email || t.created_by || `user-${t.id}`,
+              firstName: getFirstName(t),
+              lastName: getLastName(t),
+              fullName: getUserFullName(t),
+              email: t.user_email,
+              lastActivity: t.created_at,
+              transactionCount: 1,
+              transactionType: t.type,
+            },
+          ]),
+        ).values(),
+      ).slice(0, 5);
+
+      setStats({
+        totalSeeds: filteredSeeds.length,
+        totalProjects: projectsRes.data.length,
+        recentTransactions: transactions,
+        projects: projectsRes.data.filter((p) => p.status !== "completed"),
+        activeUsers: uniqueUsers,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
 
@@ -273,7 +284,7 @@ function Dashboard() {
               <span className="font-medium text-gray-700">Crop Groups</span>
 
               {CROP_GROUP_PILLS.map((pill) => {
-                const isActive = selectedGroup === pill.key;
+                const isActivePill = selectedGroup === pill.key;
 
                 const groupColors = {
                   all: "#055E1F",
@@ -285,37 +296,27 @@ function Dashboard() {
                 return (
                   <button
                     key={pill.key}
-                    onClick={() =>
-                      navigate("/seeds", { state: { cropGroup: pill.key } })
-                    }
+                    onClick={() => {
+                      setSelectedGroup(pill.key);
+                      localStorage.setItem("selectedCropGroup", pill.key);
+                    }}
                     className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
                     style={{
-                      backgroundColor: isActive
-                        ? groupColors[pill.key]
-                        : "#F5F7F5",
-                      color: isActive
-                        ? pill.key === "cereals"
-                          ? "#1B3300"
-                          : "#FFFFFF"
-                        : "#555",
-                      border: isActive
-                        ? `1px solid ${groupColors[pill.key]}`
-                        : "1px solid #ddd",
-                      boxShadow: isActive
-                        ? "0 2px 6px rgba(0,0,0,0.15)"
-                        : "none",
+                      backgroundColor: isActivePill ? groupColors[pill.key] : "#F5F7F5",
+                      color: isActivePill ? (pill.key === "cereals" ? "#1B3300" : "#FFFFFF") : "#555",
+                      border: isActivePill ? `1px solid ${groupColors[pill.key]}` : "1px solid #ddd",
+                      boxShadow: isActivePill ? "0 2px 6px rgba(0,0,0,0.15)" : "none",
                       cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      if (!isActive) {
+                      if (!isActivePill) {
                         e.currentTarget.style.backgroundColor = groupColors[pill.key];
-                        e.currentTarget.style.color =
-                          pill.key === "cereals" ? "#1B3300" : "#FFFFFF";
+                        e.currentTarget.style.color = pill.key === "cereals" ? "#1B3300" : "#FFFFFF";
                         e.currentTarget.style.border = `1px solid ${groupColors[pill.key]}`;
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isActive) {
+                      if (!isActivePill) {
                         e.currentTarget.style.backgroundColor = "#F5F7F5";
                         e.currentTarget.style.color = "#555";
                         e.currentTarget.style.border = "1px solid #ddd";
