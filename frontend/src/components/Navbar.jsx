@@ -65,124 +65,106 @@ const Navbar = () => {
   const showCropGroupSwitcher = user?.role !== "guest";
 
   return (
-    <nav className="bg-gradient-to-r from-green-800 to-emerald-700 shadow-lg sticky top-0 z-50 animate-slide-down">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+    <nav
+      className="sticky top-0 z-50 animate-slide-down shadow-lg"
+      style={{
+        height: "68px",
+        background:
+          "linear-gradient(90deg, #116B2B 0%, #237F18 60%, #FFFF00 100%)",
+      }} >
+      <div className="mx-auto" style={{ padding: "0 32px", maxWidth: "1440px", }} >
+        <div className="flex justify-between items-center h-full">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link
-                to="/"
-                className="text-xl font-bold text-white hover:text-green-200 transition-colors duration-300 flex items-center space-x-2"
-              >
-                <span>TANIM</span>
+                  to="/"
+                  className="flex items-center gap-3 text-white"
+                >
+                  {/* LOGO PLACEMENT HERE!! */}
+                  <div className="w-8 h-8 rounded-full border-2 border-white"></div>
+                <span className="text-2xl font-bold tracking-wide text-white">
+                  TANIM
+                </span>
               </Link>
             </div>
-            <div className="hidden md:ml-6 md:flex md:space-x-1">
+        
+            <div
+              className="hidden md:flex items-center"
+              style={{ gap: "32px", marginLeft: "40px" }}
+            >
               <Link
                 to="/"
-                className={`${
-                  isActive("/") && location.pathname === "/"
-                    ? "bg-green-700 text-white shadow-md"
-                    : "text-green-100 hover:bg-green-700 hover:text-white"
-                } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-              >
-                <span>Dashboard</span>
+               className={`relative text-base font-medium transition-all duration-200 ${
+                    isActive("/")
+                    ? "text-white border-b-2 border-white"
+                    : "text-white/75 hover:text-white"
+                }`}>
+                Dashboard
               </Link>
+
               {user?.role !== "guest" && canAccessFeature("seeds") && (
                 <Link
                   to="/seeds"
-                  className={`${
+                  className={`relative text-base font-medium transition-all duration-200 ${
                     isActive("/seeds")
-                      ? "bg-green-700 text-white shadow-md"
-                      : "text-green-100 hover:bg-green-700 hover:text-white"
-                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-                >
-                  <span>Seed Lots</span>
+                      ? "text-white border-b-2 border-white"
+                      : "text-white/75 hover:text-white"
+                  }`}>
+                  Seed Lots
                 </Link>
               )}
+
               {canAccessFeature("transactions") && (
                 <Link
                   to="/transactions"
-                  className={`${
+                  className={`relative text-base font-medium transition-all duration-200 ${
                     isActive("/transactions")
-                      ? "bg-green-700 text-white shadow-md"
-                      : "text-green-100 hover:bg-green-700 hover:text-white"
-                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-                >
-                  <span>Transactions</span>
+                      ? "text-white border-b-2 border-white"
+                      : "text-white/75 hover:text-white"
+                  }`}>
+                  Transactions
                 </Link>
               )}
+
               {canAccessReports() && (
                 <Link
                   to="/reports"
-                  className={`${
+                 className={`relative text-base font-medium transition-all duration-200 ${
                     isActive("/reports")
-                      ? "bg-green-700 text-white shadow-md"
-                      : "text-green-100 hover:bg-green-700 hover:text-white"
-                  } transition-all duration-300 transform px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2`}
-                >
-                  <span>Reports</span>
+                      ? "text-white border-b-2 border-white"
+                      : "text-white/75 hover:text-white"
+                  }`}>
+                  Reports
                 </Link>
               )}
             </div>
           </div>
           <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-            {showNotificationBell() && <NotificationBell />}
+            {showNotificationBell() && 
+              <div className="w-8 h-8 flex items-center justify-center">
+                <NotificationBell />
+              </div>
+            }
             <div
               className="relative py-2"
               onMouseEnter={() => setShowUserMenu(true)}
               onMouseLeave={() => setShowUserMenu(false)}
             >
-              <div className="flex items-center space-x-3 bg-green-900/30 px-4 py-2 rounded-lg animate-fade-in cursor-pointer hover:bg-green-900/50 transition-all duration-300">
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">👤</span>
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+                <div className="w-8 h-8 bg-[#FFFFC7] rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm">👨🏻‍💼</span>
                 </div>
                 <div className="text-sm">
-                  <p className="text-green-200 text-xs">Welcome back,</p>
-                  <p className="text-white font-semibold">
+                  <p className="text-white/75 text-xs">
+                      Welcome back
+                  </p>
+
+                  <p className="text-[#116B2B] font-bold">
                     {user?.name || user?.email?.split("@")[0] || "User"}
                   </p>
                 </div>
               </div>
-              {showUserMenu && (
-                <div className="absolute right-0 mt-1 bg-green-900 rounded-lg shadow-lg overflow-hidden z-50">
-                  {showCropGroupSwitcher && (
-                    <div className="px-4 py-3 border-b border-green-800">
-                      <p className="text-xs text-green-300 font-semibold mb-2">
-                        CROP GROUP
-                      </p>
-                      <div className="space-y-1">
-                        {availableCropGroups.length > 1 ? (
-                          availableCropGroups.map((group) => (
-                            <button
-                              key={group}
-                              onClick={() => handleSwitchCropGroup(group)}
-                              className={`block w-full text-left px-3 py-2 rounded text-sm transition-all ${
-                                currentCropGroup === group
-                                  ? "bg-green-700 text-white font-semibold"
-                                  : "text-green-200 hover:bg-green-800"
-                              }`}
-                            >
-                              {group.charAt(0).toUpperCase() + group.slice(1)}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 rounded text-sm text-green-100 bg-green-800/40">
-                            {currentCropGroup.charAt(0).toUpperCase() +
-                              currentCropGroup.slice(1)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="text-red-300 hover:text-red-100 hover:bg-green-800 text-sm font-medium whitespace-nowrap px-4 py-2 transition-all duration-200 block w-full text-left"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
+            {/*PLACEMENT OF THE DROP DOWN CROP GROUPS --- */}
             </div>
           </div>
         </div>
