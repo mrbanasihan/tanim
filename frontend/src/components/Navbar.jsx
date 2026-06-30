@@ -150,7 +150,7 @@ const Navbar = () => {
               onMouseEnter={() => setShowUserMenu(true)}
               onMouseLeave={() => setShowUserMenu(false)}
             >
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md cursor-pointer hover:bg-white/20 transition-all duration-200">
                 <div className="w-8 h-8 bg-[#FFFFC7] rounded-full flex items-center justify-center">
                   <span className="text-white text-sm">👨🏻‍💼</span>
                 </div>
@@ -164,7 +164,49 @@ const Navbar = () => {
                   </p>
                 </div>
               </div>
-            {/*PLACEMENT OF THE DROP DOWN CROP GROUPS --- */}
+            {/* Drop down Crop groups */}
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#116B2B] shadow-xl border border-white/10 overflow-hidden z-50">
+
+                {showCropGroupSwitcher && (
+                  <div className="px-4 py-3 border-b border-white/10">
+                    <p className="text-xs uppercase tracking-wide text-green-200 font-semibold mb-2">
+                      Crop Group
+                    </p>
+
+                    <div className="space-y-1">
+                      {availableCropGroups.length > 1 ? (
+                        availableCropGroups.map((group) => (
+                          <button
+                            key={group}
+                            onClick={() => handleSwitchCropGroup(group)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                              currentCropGroup === group
+                                ? "bg-white text-[#116B2B] font-semibold"
+                                : "text-white hover:bg-white/10"
+                            }`}
+                          >
+                            {group.charAt(0).toUpperCase() + group.slice(1)}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 rounded-lg text-sm text-white bg-white/10">
+                          {currentCropGroup.charAt(0).toUpperCase() +
+                            currentCropGroup.slice(1)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-3 text-red-300 hover:bg-white/10 hover:text-red-200 transition-all duration-200"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
             </div>
           </div>
         </div>
@@ -257,7 +299,7 @@ const Navbar = () => {
             </Link>
             <div className="pt-4 pb-3 border-t border-green-700">
               <div className="flex items-center px-3">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
                     <span className="text-white">👤</span>
                   </div>
