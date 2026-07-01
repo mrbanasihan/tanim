@@ -112,7 +112,10 @@ const NotificationBell = () => {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+          <span
+            className="absolute inline-flex items-center justify-center w-4 h-4 font-bold text-white bg-red-500 rounded-full"
+            style={{ top: "-2px", right: "-2px", fontSize: "10px", lineHeight: 1, border: "1.5px solid white" }}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

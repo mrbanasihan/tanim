@@ -184,7 +184,6 @@ function Dashboard() {
       className="min-h-screen px-6 py-6"
       style={{ backgroundColor: "#F5F7F5" }}
     >
-      {/* ── Two-column grid: 70 / 30 ─────────────────────────────────── */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
         {/* ══════════════════ LEFT — MAIN CONTENT ══════════════════ */}
