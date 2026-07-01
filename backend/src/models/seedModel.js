@@ -1,4 +1,5 @@
 const db = require("../services/db");
+const { FAMILY_GROUPS } = require("../constants/cropCatalog");
 
 const ensureSeedLotColumns = async () => {
   await db.query(`
@@ -13,6 +14,10 @@ const ensureSeedLotColumns = async () => {
   await db.query(`
     ALTER TABLE seed_lot
     ADD COLUMN IF NOT EXISTS storage_area VARCHAR(255)
+  `);
+  await db.query(`
+    ALTER TABLE seed_lot
+    ADD COLUMN IF NOT EXISTS family_group VARCHAR(100)
   `);
 };
 
@@ -146,11 +151,21 @@ const SeedModel = {
             INSERT INTO seed_lot (
                 seed_id, project_id, batch_name, crop_type, variety, classification,
               moisture_content, gross_weight, cleaned_quantity, current_quantity,
-              date_received, area_planted, storage_area, remarks, is_active, created_by, created_at
+              date_received, area_planted, storage_area, remarks, is_active, created_by, created_at,
+              family_group
             )
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, $14, NOW())
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, $14, NOW(), $15)
             RETURNING *
       `;
+
+      let familyGroup = null;
+      for (const [family, crops] of Object.entries(FAMILY_GROUPS)) {
+        if (crops.includes(data.crop_type)) {
+          familyGroup = family;
+          break;
+        }
+      }
+
       const result = await client.query(query, [
         data.project_id || null,
         batchName,
@@ -166,6 +181,7 @@ const SeedModel = {
         data.storage_area || null,
         data.remarks || null,
         data.created_by,
+        familyGroup,
       ]);
 
       const seed = result.rows[0];
@@ -232,10 +248,20 @@ const SeedModel = {
             date_received = $9,
             area_planted = $10,
             storage_area = $11,
-            remarks = $12
-        WHERE seed_id = $13
+            remarks = $12,
+            family_group = $13
+        WHERE seed_id = $14
         RETURNING *
     `;
+
+      let familyGroup = null;
+      for (const [family, crops] of Object.entries(FAMILY_GROUPS)) {
+        if (crops.includes(data.crop_type)) {
+          familyGroup = family;
+          break;
+        }
+      }
+
       const result = await client.query(query, [
         data.project_id || null,
         data.crop_type,
@@ -249,6 +275,7 @@ const SeedModel = {
         data.area_planted || null,
         data.storage_area || null,
         data.remarks || null,
+        familyGroup,
         seedId,
       ]);
 

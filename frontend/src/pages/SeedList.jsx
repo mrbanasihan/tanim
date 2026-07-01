@@ -4,7 +4,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
-import { getSelectedCropGroup } from "../constants/cropCatalog";
+import { getSelectedCropGroup, FAMILY_GROUPS, CROP_PROJECTS, CROP_CATALOG } from "../constants/cropCatalog";
 
 // SeedList
 // Lists all seed lots with filtering by crop type, variety, and project; interacts with seeds API and access control
@@ -17,6 +17,7 @@ const SeedList = () => {
     crop_type: "",
     variety: "",
     project_id: "",
+    family_group: "",
   });
   const [sortType, setSortType] = useState("name"); // name, quantity
   const [sortOrder, setSortOrder] = useState("asc"); // asc, desc
@@ -247,6 +248,13 @@ const SeedList = () => {
 
     let results = [...seeds];
 
+    // Apply Family Group filter
+    if (filters.family_group) {
+      results = results.filter(
+        (seed) => seed.family_group === filters.family_group
+      );
+    }
+
     // Apply search across multiple fields
     if (searchTerm && searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
@@ -277,40 +285,49 @@ const SeedList = () => {
       console.log("📦 Seeds response:", seedsRes.data);
       console.log("📦 Projects response:", projectsRes.data);
 
-      // Get unique crop types
-      let seedsData = seedsRes.data || [];
-      console.log("📋 Raw seedsData:", seedsData);
+      if (selectedGroup && CROP_CATALOG[selectedGroup]) {
+        // Load from static CROP_CATALOG so all crops are available to filter on even with 0 stock
+        const catalogCrops = Object.keys(CROP_CATALOG[selectedGroup]).sort();
+        setCropTypes(catalogCrops);
 
-      seedsData = filterByCropGroup(seedsData, user?.role, user?.crop_groups);
-      console.log("📋 Filtered seedsData:", seedsData);
+        const catalogVarieties = Object.values(CROP_CATALOG[selectedGroup]).flat().sort();
+        setVarieties(catalogVarieties);
 
-      const uniqueCropTypes = [
-        ...new Set(seedsData.map((seed) => seed.crop_type).filter(Boolean)),
-      ].sort();
-      console.log("🌾 Unique crop types:", uniqueCropTypes);
-      setCropTypes(uniqueCropTypes);
+        const catalogMap = {};
+        Object.entries(CROP_CATALOG[selectedGroup]).forEach(([crop, vars]) => {
+          catalogMap[crop] = vars;
+        });
+        setCropVarietyMap(catalogMap);
+      } else {
+        // Fallback: Populate dynamically from database values
+        let seedsData = seedsRes.data || [];
+        seedsData = filterByCropGroup(seedsData, user?.role, user?.crop_groups);
 
-      // Get unique varieties
-      const uniqueVarieties = [
-        ...new Set(seedsData.map((seed) => seed.variety).filter(Boolean)),
-      ].sort();
-      console.log("🌱 Unique varieties:", uniqueVarieties);
-      setVarieties(uniqueVarieties);
+        const uniqueCropTypes = [
+          ...new Set(seedsData.map((seed) => seed.crop_type).filter(Boolean)),
+        ].sort();
+        setCropTypes(uniqueCropTypes);
 
-      const nextCropVarietyMap = {};
-      seedsData.forEach((seed) => {
-        if (!seed?.crop_type || !seed?.variety) return;
-        if (!nextCropVarietyMap[seed.crop_type]) {
-          nextCropVarietyMap[seed.crop_type] = new Set();
-        }
-        nextCropVarietyMap[seed.crop_type].add(seed.variety);
-      });
+        const uniqueVarieties = [
+          ...new Set(seedsData.map((seed) => seed.variety).filter(Boolean)),
+        ].sort();
+        setVarieties(uniqueVarieties);
 
-      const normalizedCropVarietyMap = {};
-      Object.entries(nextCropVarietyMap).forEach(([crop, varietySet]) => {
-        normalizedCropVarietyMap[crop] = Array.from(varietySet).sort();
-      });
-      setCropVarietyMap(normalizedCropVarietyMap);
+        const nextCropVarietyMap = {};
+        seedsData.forEach((seed) => {
+          if (!seed?.crop_type || !seed?.variety) return;
+          if (!nextCropVarietyMap[seed.crop_type]) {
+            nextCropVarietyMap[seed.crop_type] = new Set();
+          }
+          nextCropVarietyMap[seed.crop_type].add(seed.variety);
+        });
+
+        const normalizedCropVarietyMap = {};
+        Object.entries(nextCropVarietyMap).forEach(([crop, varietySet]) => {
+          normalizedCropVarietyMap[crop] = Array.from(varietySet).sort();
+        });
+        setCropVarietyMap(normalizedCropVarietyMap);
+      }
 
       // Get projects - using project_name field
       let projectsData = [];
@@ -384,6 +401,7 @@ const SeedList = () => {
       crop_type: "",
       variety: "",
       project_id: "",
+      family_group: "",
     });
     setSearchTerm("");
     setSortType("name");
@@ -396,10 +414,15 @@ const SeedList = () => {
     setShowProjectDropdown(false);
   };
 
-  const filteredCropTypes = cropTypes.filter(
-    (crop) =>
-      crop && crop.toLowerCase().includes((cropTypeSearch || "").toLowerCase()),
-  );
+  const selectedGroup = localStorage.getItem("selectedCropGroup");
+  const isVegetables = selectedGroup === "vegetables";
+
+  const filteredCropTypes = cropTypes.filter((crop) => {
+    const matchesSearch = crop && crop.toLowerCase().includes((cropTypeSearch || "").toLowerCase());
+    if (!filters.family_group) return matchesSearch;
+    const familyCrops = FAMILY_GROUPS[filters.family_group] || [];
+    return matchesSearch && familyCrops.includes(crop.toLowerCase());
+  });
 
   const baseVarieties = filters.crop_type
     ? cropVarietyMap[filters.crop_type] || []
@@ -411,14 +434,16 @@ const SeedList = () => {
       variety.toLowerCase().includes((varietySearch || "").toLowerCase()),
   );
 
-  const filteredProjects = projects.filter(
-    (project) =>
-      project &&
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch = project &&
       project.project_name &&
       project.project_name
         .toLowerCase()
-        .includes((projectSearch || "").toLowerCase()),
-  );
+        .includes((projectSearch || "").toLowerCase());
+    if (!filters.crop_type) return matchesSearch;
+    const cropProjs = CROP_PROJECTS[filters.crop_type.toLowerCase()] || [];
+    return matchesSearch && cropProjs.includes(project.project_name);
+  });
 
   const selectedProjectName = filters.project_id
     ? toTitleCase(
@@ -655,6 +680,30 @@ const SeedList = () => {
                 )}
               </div>
             </div>
+
+            {/* Family Group Dropdown */}
+            {isVegetables && (
+              <div className="dropdown-container w-40">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Family Group
+                </label>
+                <select
+                  value={filters.family_group || ""}
+                  onChange={(e) => {
+                    handleFilterChange("family_group", e.target.value);
+                    handleFilterChange("crop_type", "");
+                    handleFilterChange("variety", "");
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm h-[38px] bg-white cursor-pointer"
+                >
+                  <option value="">All Families</option>
+                  <option value="CUCURBITS">Cucurbits</option>
+                  <option value="SOLANACEOUS">Solanaceous</option>
+                  <option value="MALLOW">Mallow</option>
+                  <option value="LEGUMINOUS">Leguminous</option>
+                </select>
+              </div>
+            )}
 
             {/* Crop Type Dropdown */}
             <div
@@ -1111,6 +1160,11 @@ const SeedList = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Lot Number
                 </th>
+                {isVegetables && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Family Group
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Crop Type
                 </th>
@@ -1135,6 +1189,13 @@ const SeedList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {seed.batch_name ? toTitleCase(seed.batch_name) : "N/A"}
                     </td>
+                    {isVegetables && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                          {seed.family_group || "N/A"}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
                         {seed.crop_type ? toTitleCase(seed.crop_type) : "N/A"}

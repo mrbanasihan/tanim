@@ -67,12 +67,24 @@ const SeedController = {
   // Create new seed lot with auto-generated batch name and initial quantity setup
   async create(req, res) {
     try {
+      const { ALL_CROP_TYPES, ALL_VARIETIES } = require("../constants/cropCatalog");
+      let cropType = req.body.crop_type;
+      let variety = req.body.variety;
+
+      const matchedCrop = ALL_CROP_TYPES.find(c => c.toLowerCase() === (cropType || "").toLowerCase().trim());
+      if (matchedCrop) {
+        cropType = matchedCrop;
+      }
+
+      const matchedVariety = ALL_VARIETIES.find(v => v.toLowerCase() === (variety || "").toLowerCase().trim());
+      if (matchedVariety) {
+        variety = matchedVariety;
+      }
+
       const seedData = {
         ...req.body,
-        // batch_name is auto-generated - DO NOT include
-        // Dropdown values already match enum exactly, do not sanitize
-        crop_type: req.body.crop_type,
-        variety: req.body.variety,
+        crop_type: cropType,
+        variety: variety,
         classification: req.body.classification,
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
@@ -117,12 +129,25 @@ const SeedController = {
   async update(req, res) {
     try {
       const { id } = req.params;
+      const { ALL_CROP_TYPES, ALL_VARIETIES } = require("../constants/cropCatalog");
+      let cropType = req.body.crop_type;
+      let variety = req.body.variety;
+
+      const matchedCrop = ALL_CROP_TYPES.find(c => c.toLowerCase() === (cropType || "").toLowerCase().trim());
+      if (matchedCrop) {
+        cropType = matchedCrop;
+      }
+
+      const matchedVariety = ALL_VARIETIES.find(v => v.toLowerCase() === (variety || "").toLowerCase().trim());
+      if (matchedVariety) {
+        variety = matchedVariety;
+      }
+
       const seedData = {
         ...req.body,
         batch_name: sanitizeTitleCase(req.body.batch_name),
-        // Dropdown values already match enum exactly, do not sanitize
-        crop_type: req.body.crop_type,
-        variety: req.body.variety,
+        crop_type: cropType,
+        variety: variety,
         classification: req.body.classification,
         moisture_content: sanitizeOptionalNumber(req.body.moisture_content),
         gross_weight: sanitizeQuantity(req.body.gross_weight),
@@ -190,6 +215,7 @@ const SeedController = {
       const XLSX = require("xlsx");
       const data = seeds.map(seed => ({
         "Batch Name": seed.batch_name,
+        "Family Group": seed.family_group || "",
         "Crop Type": seed.crop_type,
         "Variety": seed.variety,
         "Classification": seed.classification,
@@ -239,12 +265,28 @@ const SeedController = {
       const seedsToInsert = [];
       const validationErrors = [];
 
+      const { ALL_CROP_TYPES, ALL_VARIETIES } = require("../constants/cropCatalog");
+
       rows.forEach((row, index) => {
         const rowNumber = index + 2; 
+        
+        let cropType = row["Crop Type"] ? String(row["Crop Type"]).toLowerCase().trim() : "";
+        let variety = row["Variety"] ? String(row["Variety"]).trim() : "";
+        
+        const matchedCrop = ALL_CROP_TYPES.find(c => c.toLowerCase() === cropType.toLowerCase());
+        if (matchedCrop) {
+          cropType = matchedCrop;
+        }
+
+        const matchedVariety = ALL_VARIETIES.find(v => v.toLowerCase() === variety.toLowerCase());
+        if (matchedVariety) {
+          variety = matchedVariety;
+        }
+
         const seedData = {
           project_name: row["Project"] ? String(row["Project"]).trim() : "",
-          crop_type: row["Crop Type"] ? String(row["Crop Type"]).toLowerCase().trim() : "",
-          variety: row["Variety"] ? String(row["Variety"]).trim() : "",
+          crop_type: cropType,
+          variety: variety,
           classification: row["Classification"] ? String(row["Classification"]).toLowerCase().trim() : "",
           moisture_content: sanitizeOptionalNumber(row["Moisture Content (%)"]),
           gross_weight: sanitizeQuantity(row["Gross Weight (kg)"]),
