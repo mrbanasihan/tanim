@@ -25,9 +25,17 @@ const SeedModel = {
 
       let query = `
             SELECT s.*, p.project_name as project_name,
-              s.storage_area AS storage_area_name
+              s.storage_area AS storage_area_name,
+              g.germination_rate as latest_germination_rate
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
+            LEFT JOIN LATERAL (
+              SELECT germination_rate
+              FROM germination_record
+              WHERE seed_id = s.seed_id
+              ORDER BY created_at DESC
+              LIMIT 1
+            ) g ON true
       WHERE s.is_active = true
         `;
 
@@ -86,9 +94,17 @@ const SeedModel = {
 
       const query = `
             SELECT s.*, p.project_name as project_name,
-              s.storage_area AS storage_area_name
+              s.storage_area AS storage_area_name,
+              g.germination_rate as latest_germination_rate
             FROM seed_lot s
             LEFT JOIN project p ON s.project_id = p.project_id
+            LEFT JOIN LATERAL (
+              SELECT germination_rate
+              FROM germination_record
+              WHERE seed_id = s.seed_id
+              ORDER BY created_at DESC
+              LIMIT 1
+            ) g ON true
             WHERE s.seed_id = $1 AND s.is_active = true
         `;
       const result = await db.query(query, [seedId]);
