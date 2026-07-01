@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
+import { Pencil, Trash2 } from "lucide-react";
 
 // TransactionHistory
 // Displays transaction history with filtering and sorting by type, seed lot, crop type, and variety
@@ -920,26 +921,27 @@ const TransactionHistory = () => {
                                   ).toLocaleDateString()}
                                 </td>
                                 {canManageTransactionActions && (
-                                  <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap space-x-3">
+                                  <div className="flex items-center gap-1">
                                     <button
                                       onClick={() =>
-                                        navigate(
-                                          `/transactions/${transaction.id}/edit`,
-                                        )
+                                        navigate(`/transactions/${transaction.id}/edit`)
                                       }
-                                      className="text-indigo-600 hover:text-indigo-900"
+                                      className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
+                                      title="Edit"
                                     >
-                                      Edit
+                                      <Pencil size={18} />
                                     </button>
+
                                     <button
                                       onClick={() =>
                                         handleDeleteTransaction(transaction.id)
                                       }
-                                      className="text-red-600 hover:text-red-900"
+                                      className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                      title="Delete"
                                     >
-                                      Delete
+                                      <Trash2 size={18} />
                                     </button>
-                                  </td>
+                                  </div>
                                 )}
                               </tr>
                             ))}
