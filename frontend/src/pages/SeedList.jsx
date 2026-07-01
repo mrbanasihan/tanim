@@ -86,6 +86,79 @@ const SeedList = () => {
     setCurrentPage(1);
   }, [filters, searchTerm, sortType, sortOrder]);
 
+  const fileInputRef = useRef(null);
+
+  const handleExportExcel = async () => {
+    try {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      if (searchTerm) params.append("search", searchTerm);
+      
+      const response = await api.get(`/seeds/export/excel?${params}`, {
+        responseType: "blob",
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `seed_inventory_${Date.now()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Export Excel error:", error);
+      alert("Failed to export seed inventory.");
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await api.get("/seeds/import/template", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "seed_import_template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Download template error:", error);
+      alert("Failed to download template.");
+    }
+  };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await api.post("/seeds/import/excel", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      alert("Seed lots imported successfully!");
+      fetchSeeds();
+    } catch (error) {
+      console.error("Import Excel error:", error);
+      const errorDetails = error.response?.data?.details;
+      if (Array.isArray(errorDetails)) {
+        alert(`Import failed with errors:\n\n${errorDetails.join("\n")}`);
+      } else {
+        alert(error.response?.data?.error || "Failed to import seed lots.");
+      }
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   const fetchSeeds = async () => {
     try {
       setLoading(true);
@@ -445,27 +518,86 @@ const SeedList = () => {
               list.
             </p>
           </div>
-          {["admin", "researcher", "staff"].includes(user?.role) && (
-            <Link
-              to="/seeds/new"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md"
-            >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+          <div className="flex items-center space-x-2">
+            {["admin", "staff"].includes(user?.role) && (
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => fileInputRef.current.click()}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+                  style={{
+                    backgroundColor: "#F5F7F5",
+                    color: "#555",
+                    border: "1px solid #ddd",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#126B2C";
+                    e.currentTarget.style.color = "#FFFFFF";
+                    e.currentTarget.style.border = "1px solid #126B2C";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F5F7F5";
+                    e.currentTarget.style.color = "#555";
+                    e.currentTarget.style.border = "1px solid #ddd";
+                  }}
+                  title="Import seed lots from Excel"
+                >
+                  Import Excel
+                </button>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+                  style={{
+                    backgroundColor: "#F5F7F5",
+                    color: "#555",
+                    border: "1px solid #ddd",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#237F18";
+                    e.currentTarget.style.color = "#FFFFFF";
+                    e.currentTarget.style.border = "1px solid #237F18";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F5F7F5";
+                    e.currentTarget.style.color = "#555";
+                    e.currentTarget.style.border = "1px solid #ddd";
+                  }}
+                  title="Download seed import template"
+                >
+                  Template
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImportExcel}
+                  accept=".xlsx,.xls"
+                  className="hidden"
                 />
-              </svg>
-              Add New Seed Lot
-            </Link>
-          )}
+              </div>
+            )}
+            {["admin", "researcher", "staff"].includes(user?.role) && (
+              <Link
+                to="/seeds/new"
+                className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add New Seed Lot
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -936,11 +1068,38 @@ const SeedList = () => {
         </div>
       </div>
 
-      {/* Results Count */}
-      <div className="mb-4 text-sm text-gray-600">
-        Showing {totalItems > 0 ? indexOfFirstItem + 1 : 0} to{" "}
-        {Math.min(indexOfLastItem, totalItems)} of {totalItems} seed lots{" "}
-        {totalItems < seeds.length && `(filtered from ${seeds.length} total)`}
+      {/* Results Count & Export Button */}
+      <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
+        <div>
+          Showing {totalItems > 0 ? indexOfFirstItem + 1 : 0} to{" "}
+          {Math.min(indexOfLastItem, totalItems)} of {totalItems} seed lots{" "}
+          {totalItems < seeds.length && `(filtered from ${seeds.length} total)`}
+        </div>
+        {["admin", "staff"].includes(user?.role) && (
+          <button
+            onClick={handleExportExcel}
+            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+            style={{
+              backgroundColor: "#F5F7F5",
+              color: "#555",
+              border: "1px solid #ddd",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#126B2C";
+              e.currentTarget.style.color = "#FFFFFF";
+              e.currentTarget.style.border = "1px solid #126B2C";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#F5F7F5";
+              e.currentTarget.style.color = "#555";
+              e.currentTarget.style.border = "1px solid #ddd";
+            }}
+            title="Export filtered/all seed lots to Excel"
+          >
+            Export Excel
+          </button>
+        )}
       </div>
 
       {/* Seeds Table */}

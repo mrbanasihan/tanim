@@ -1,4 +1,5 @@
 const SeedModel = require("../models/seedModel");
+const db = require("../services/db");
 const {
   validateSeedLot,
   sanitizeString,
@@ -172,6 +173,176 @@ const SeedController = {
       res.status(500).json({ error: "Internal server error" });
     }
   },
+
+  // GET /api/seeds/export/excel
+  // Export all seed lots with applied filters as Excel file
+  async exportExcel(req, res) {
+    try {
+      const { crop_type, variety, project_id, search } = req.query;
+
+      const seeds = await SeedModel.getAll({
+        crop_type,
+        variety,
+        project_id,
+        search,
+      });
+
+      const XLSX = require("xlsx");
+      const data = seeds.map(seed => ({
+        "Batch Name": seed.batch_name,
+        "Crop Type": seed.crop_type,
+        "Variety": seed.variety,
+        "Classification": seed.classification,
+        "Project": seed.project_name || "",
+        "Moisture Content (%)": seed.moisture_content,
+        "Gross Weight (kg)": seed.gross_weight,
+        "Cleaned Weight (kg)": seed.cleaned_quantity,
+        "Current Quantity (kg)": seed.current_quantity,
+        "Latest Germination Rate (%)": seed.latest_germination_rate ? parseFloat(seed.latest_germination_rate) : null,
+        "Area Planted": seed.area_planted,
+        "Storage Area": seed.storage_area,
+        "Remarks": seed.remarks,
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Seed Inventory");
+
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename=seed_inventory_${Date.now()}.xlsx`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Export seed error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // POST /api/seeds/import/excel
+  // Import seed lots from Excel file
+  async importExcel(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const XLSX = require("xlsx");
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      const seedsToInsert = [];
+      const validationErrors = [];
+
+      rows.forEach((row, index) => {
+        const rowNumber = index + 2; 
+        const seedData = {
+          project_name: row["Project"] ? String(row["Project"]).trim() : "",
+          crop_type: row["Crop Type"] ? String(row["Crop Type"]).toLowerCase().trim() : "",
+          variety: row["Variety"] ? String(row["Variety"]).trim() : "",
+          classification: row["Classification"] ? String(row["Classification"]).toLowerCase().trim() : "",
+          moisture_content: sanitizeOptionalNumber(row["Moisture Content (%)"]),
+          gross_weight: sanitizeQuantity(row["Gross Weight (kg)"]),
+          cleaned_quantity: sanitizeOptionalNumber(row["Cleaned Weight (kg)"]),
+          area_planted: sanitizeTitleCase(row["Area Planted"]),
+          storage_area: row["Storage Area"] ? String(row["Storage Area"]).trim() : null,
+          remarks: sanitizeString(row["Remarks"]),
+          created_by: req.user.userId,
+        };
+
+         const validation = validateSeedLot(seedData, { requireGrossWeight: true });
+        if (!validation.isValid) {
+          validationErrors.push(`Row ${rowNumber}: ${validation.errors.join(", ")}`);
+        } else {
+          seedsToInsert.push(seedData);
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          error: "Import rejected due to validation errors",
+          details: validationErrors,
+        });
+      }
+      const insertedSeeds = [];
+      for (const seedData of seedsToInsert) {
+        if (seedData.project_name) {
+          const projectResult = await db.query(
+            "SELECT project_id FROM project WHERE project_name = $1 LIMIT 1",
+            [seedData.project_name]
+          );
+          seedData.project_id = projectResult.rows[0] ? projectResult.rows[0].project_id : null;
+        } else {
+          seedData.project_id = null;
+        }
+        const newSeed = await SeedModel.create(seedData);
+        insertedSeeds.push(newSeed);
+      }
+      res.json({
+        message: `Successfully imported ${insertedSeeds.length} seed lots.`,
+        importedCount: insertedSeeds.length,
+      });
+      
+    } catch (error) {
+      console.error("Import seed error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // GET /api/seeds/import/template
+  // Download Excel template for importing seeds
+  async downloadTemplate(req, res) {
+    try {
+      const XLSX = require("xlsx");
+
+      const headers = [
+        "Crop Type",
+        "Variety",
+        "Classification",
+        "Project",
+        "Moisture Content (%)",
+        "Gross Weight (kg)",
+        "Cleaned Weight (kg)",
+        "Current Quantity (kg)",
+        "Area Planted",
+        "Storage Area",
+        "Remarks"
+      ];
+
+      const sampleRow = [
+        "soybean",
+        "Tiwala 6",
+        "certified",
+        "Sample Project A",
+        12.5,
+        100.0,
+        95.5,
+        95.5,
+        "Field Alpha",
+        "Cold Storage 1",
+        "Sample remarks text"
+      ];
+
+      const aoaData = [headers, sampleRow];
+      const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Seed Import Template");
+
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=seed_import_template.xlsx");
+      res.send(buffer);
+    } catch (error) {
+      console.error("Download template error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
 };
 
 module.exports = SeedController;
