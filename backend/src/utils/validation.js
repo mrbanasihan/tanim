@@ -1,3 +1,5 @@
+const { ALL_CROP_TYPES, ALL_VARIETIES } = require("../constants/cropCatalog");
+
 // isValidEmail
 // Verify email format matches @domain.com pattern
 const isValidEmail = (email) => {
@@ -92,10 +94,17 @@ const validateSeedLot = (data, options = {}) => {
 
   if (!data.crop_type) {
     errors.push("Crop type is required");
+  } else if (!ALL_CROP_TYPES.includes(data.crop_type.toLowerCase())) {
+    errors.push(`Crop type "${data.crop_type}" is not recognized`);
   }
 
   if (!data.variety) {
     errors.push("Variety is required");
+  } else {
+    const exists = ALL_VARIETIES.some(v => v.toLowerCase() === data.variety.toLowerCase());
+    if (!exists) {
+      errors.push(`Variety "${data.variety}" is not recognized`);
+    }
   }
 
   if (
