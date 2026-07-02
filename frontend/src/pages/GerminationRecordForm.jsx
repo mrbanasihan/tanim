@@ -158,14 +158,14 @@ const GerminationRecordForm = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+              className="flex-1 bg-[#116B2B] hover:bg-[#4d7049] disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
             >
               {loading ? "Saving..." : "Save Germination Record"}
             </button>
             <button
               type="button"
               onClick={() => navigate(`/seeds/${seedId}`)}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+              className="flex-1 bg-[#3fa232] hover:bg-[#4d7049] text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
             >
               Cancel
             </button>

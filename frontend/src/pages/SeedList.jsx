@@ -537,10 +537,10 @@ const SeedList = () => {
       <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 mb-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold mb-1" style={{ color: "#1B5E20" }}>
               Seed Lots
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-gray-500 text-sm leading-relaxed">
               Browse all seed lot records in the system.
             </p>
           </div>
@@ -948,7 +948,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("name")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "name"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -992,7 +992,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("quantity")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "quantity"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -1029,7 +1029,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("date")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "date"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -1093,7 +1093,7 @@ const SeedList = () => {
                   Search: {searchTerm}
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="ml-1.5 hover:text-blue-600 font-bold"
+                    className="ml-1.5 hover:text-[#86B839]font-bold"
                   >
                     ×
                   </button>
@@ -1210,7 +1210,7 @@ const SeedList = () => {
                       kg
                     </td>
                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-3">
                         <Link
                           to={`/seeds/${seed.seed_id}`}
                           className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors"
@@ -1339,8 +1339,8 @@ const SeedList = () => {
                       aria-current={currentPage === page ? "page" : undefined}
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition ${
                         currentPage === page
-                          ? "z-10 bg-blue-600 border-blue-600 text-white"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                           ? "z-10 bg-[#237F18] border-[#237F18] text-white"
+                           : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                       }`}
                     >
                       {page}

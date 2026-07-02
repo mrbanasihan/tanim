@@ -155,7 +155,6 @@ function Dashboard() {
   };
 
   const CROP_GROUP_PILLS = [
-    { key: "all", label: "All" },
     { key: "vegetables", label: "Vegetables" },
     { key: "legumes", label: "Legumes" },
     { key: "cereals", label: "Cereals" },
@@ -311,7 +310,6 @@ function Dashboard() {
                 const isActive = selectedGroup === pill.key;
 
                 const groupColors = {
-                  all: "#055E1F",
                   vegetables: "#126B2C",
                   legumes: "#237F18",
                   cereals: "#D4AF17",
