@@ -11,7 +11,7 @@ import SeedForm from "../components/SeedForm";
 // SeedList
 // Lists all seed lots with filtering by crop type, variety, and project; interacts with seeds API and access control
 const SeedList = () => {
-  const { user } = useAuth();
+  const { user, selectedCropGroup } = useAuth();
   const [seeds, setSeeds] = useState([]);
   const [filteredSeeds, setFilteredSeeds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ const SeedList = () => {
 
   useEffect(() => {
     fetchSeeds();
-  }, [filters, sortType, sortOrder, user?.role, user?.crop_groups]);
+  }, [filters, sortType, sortOrder, user?.role, user?.crop_groups, selectedCropGroup]);
 
   useEffect(() => {
     if (seeds.length > 0) {
@@ -278,7 +278,7 @@ const SeedList = () => {
     try {
       console.log("🔍 Fetching dropdown data...");
 
-      const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
+      const selectedGroup = selectedCropGroup;
       const [seedsRes, projectsRes] = await Promise.all([
         api.get("/seeds"),
         api.get(

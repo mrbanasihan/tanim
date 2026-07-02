@@ -55,7 +55,7 @@ const COLORS = [
 // Generates and displays charts for seeds, transactions, and projects in a dashboard layout
 const Reports = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, selectedCropGroup } = useAuth();
   const canViewReports = canAccessFeature(user?.role, "view_reports");
   
   const [reportData, setReportData] = useState({
@@ -83,13 +83,13 @@ const Reports = () => {
       return;
     }
     fetchReportData();
-  }, [authLoading, canViewReports, navigate, user]);
+  }, [authLoading, canViewReports, navigate, user, selectedCropGroup]);
 
   const fetchReportData = async () => {
     try {
       setError(null);
       setLoading(true);
-      const selectedGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
+      const selectedGroup = selectedCropGroup;
       const [seedsRes, transactionsRes, projectsRes, roomsRes] =
         await Promise.all([
           api.get("/seeds"),

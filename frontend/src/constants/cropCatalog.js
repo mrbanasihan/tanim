@@ -92,7 +92,7 @@ export const getSelectedCropGroup = (userRole, cropGroups = []) => {
   const availableGroups =
     userRole === "admin"
       ? CROP_GROUPS
-      : cropGroups.filter((group) => CROP_GROUPS.includes(group));
+      : (cropGroups || []).filter((group) => CROP_GROUPS.includes(group));
 
   if (availableGroups.length === 0) {
     return null;

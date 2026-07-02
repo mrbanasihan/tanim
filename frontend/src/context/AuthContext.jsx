@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "../services/api";
+import { getSelectedCropGroup } from "../constants/cropCatalog";
 
 const AuthContext = createContext();
 
@@ -18,6 +19,9 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCropGroup, setSelectedCropGroup] = useState(
+    localStorage.getItem("selectedCropGroup") || "legumes"
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -38,6 +42,17 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // Sync selected crop group when user changes
+  useEffect(() => {
+    if (user) {
+      const active = getSelectedCropGroup(user.role, user.crop_groups);
+      if (active) {
+        localStorage.setItem("selectedCropGroup", active);
+        setSelectedCropGroup(active);
+      }
+    }
+  }, [user]);
 
   const login = async (email, password) => {
     try {
@@ -62,11 +77,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const changeCropGroup = (cropGroup) => {
+    localStorage.setItem("selectedCropGroup", cropGroup);
+    setSelectedCropGroup(cropGroup);
+  };
+
   const value = {
     user,
     login,
     logout,
     loading,
+    selectedCropGroup,
+    changeCropGroup,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -8,19 +8,12 @@ import tanimLogo from "../assets/tanimLogo.png";
 // Navbar
 // Navigation bar with links, crop group switcher, and user menu; interacts with AuthContext and manages crop group selection
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, selectedCropGroup, changeCropGroup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [selectedCropGroup, setSelectedCropGroup] = useState(
-    localStorage.getItem("selectedCropGroup") ||
-      user?.current_crop_group ||
-      "legumes",
-  );
   const availableCropGroups = user?.crop_groups || [];
-  const currentCropGroup = availableCropGroups.includes(selectedCropGroup)
-    ? selectedCropGroup
-    : user?.current_crop_group || availableCropGroups[0] || "legumes";
+  const currentCropGroup = selectedCropGroup;
 
   // handleLogout
   // Logs out user and redirects to login page
@@ -32,9 +25,7 @@ const Navbar = () => {
   // handleSwitchCropGroup
   // Switches to different crop group and updates localStorage
   const handleSwitchCropGroup = (cropGroup) => {
-    setSelectedCropGroup(cropGroup);
-    // Store in localStorage for persistence
-    localStorage.setItem("selectedCropGroup", cropGroup);
+    changeCropGroup(cropGroup);
     setShowUserMenu(false);
     // Navigate within SPA to avoid host-level 404 on nested routes after switch
     navigate("/", { replace: true });
@@ -329,7 +320,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        <style jsx>{`
+        <style>{`
           @keyframes slideDown {
             from {
               opacity: 0;

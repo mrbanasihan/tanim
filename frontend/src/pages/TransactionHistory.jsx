@@ -10,7 +10,7 @@ import TransactionForm from "../components/TransactionForm";
 // TransactionHistory
 // Displays transaction history with filtering and sorting by type, seed lot, crop type, and variety
 const TransactionHistory = () => {
-  const { user } = useAuth();
+  const { user, selectedCropGroup } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -264,11 +264,11 @@ const TransactionHistory = () => {
 
   useEffect(() => {
     fetchDropdownData();
-  }, []);
+  }, [selectedCropGroup]);
 
   useEffect(() => {
     fetchTransactions();
-  }, [filters, sortType, sortOrder]);
+  }, [filters, sortType, sortOrder, selectedCropGroup]);
 
   useEffect(() => {
     setCheckoutPage(1);

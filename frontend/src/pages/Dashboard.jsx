@@ -8,7 +8,7 @@ import { getSelectedCropGroup, CROP_GROUPS } from "../constants/cropCatalog";
 // Dashboard
 // Main dashboard page displaying statistics, recent transactions, projects, and active users
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, selectedCropGroup, changeCropGroup } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalSeeds: 0,
@@ -18,7 +18,6 @@ function Dashboard() {
     activeUsers: [],
   });
   const [loading, setLoading] = useState(true);
-  const [selectedGroup, setSelectedGroup] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -77,8 +76,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const initialGroup = getSelectedCropGroup(user?.role, user?.crop_groups);
-        if (initialGroup) setSelectedGroup(initialGroup);
+        const initialGroup = selectedCropGroup;
 
         const [seedsRes, projectsRes, transactionsRes] = await Promise.all([
           api.get("/seeds"),
@@ -134,7 +132,7 @@ function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [user?.role, user?.crop_groups]);
+  }, [user?.role, user?.crop_groups, selectedCropGroup]);
 
 
 
@@ -307,7 +305,7 @@ function Dashboard() {
               <span className="font-medium text-gray-700">Crop Groups</span>
 
               {CROP_GROUP_PILLS.map((pill) => {
-                const isActive = selectedGroup === pill.key;
+                const isActive = selectedCropGroup === pill.key;
 
                 const groupColors = {
                   vegetables: "#126B2C",
@@ -318,9 +316,7 @@ function Dashboard() {
                 return (
                   <button
                     key={pill.key}
-                    onClick={() =>
-                      navigate("/seeds", { state: { cropGroup: pill.key } })
-                    }
+                    onClick={() => changeCropGroup(pill.key)}
                     className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
                     style={{
                       backgroundColor: isActive
@@ -376,17 +372,17 @@ function Dashboard() {
               >
                 Recent Transactions
               </h2>
-              {selectedGroup !== "all" && (
+              {selectedCropGroup !== "all" && (
                 <span
                   className="text-xs px-2 py-0.5 rounded-full font-semibold capitalize"
                   style={{
                     backgroundColor:
-                      selectedGroup === "cereals" ? "#FFF9C4" : "#E8F5E9",
+                      selectedCropGroup === "cereals" ? "#FFF9C4" : "#E8F5E9",
                     color:
-                      selectedGroup === "cereals" ? "#827717" : "#1B5E20",
+                      selectedCropGroup === "cereals" ? "#827717" : "#1B5E20",
                   }}
                 >
-                  {selectedGroup}
+                  {selectedCropGroup}
                 </span>
               )}
             </div>
@@ -452,7 +448,7 @@ function Dashboard() {
                 <span className="text-4xl mb-2">🌿</span>
                 <p className="text-sm font-medium">
                   No transactions found
-                  {selectedGroup !== "all" ? ` for ${selectedGroup}` : ""}
+                  {selectedCropGroup !== "all" ? ` for ${selectedCropGroup}` : ""}
                 </p>
               </div>
             )}
@@ -592,7 +588,7 @@ function Dashboard() {
                 <div className="space-y-2">
                   {stats.projects.slice(0, 5).map((project) => (
                     <div
-                      key={project.id}
+                      key={project.project_id || project.id}
                       className="flex items-start gap-3 p-3 rounded-lg border transition-colors hover:bg-green-50"
                       style={{ borderColor: "#E0E0E0" }}
                     >
@@ -600,7 +596,7 @@ function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="font-semibold text-gray-800 text-xs truncate">
-                            {project.name}
+                            {project.project_name || project.name}
                           </p>
                           <span
                             className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
