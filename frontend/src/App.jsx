@@ -14,6 +14,7 @@ import TransactionHistory from "./pages/TransactionHistory";
 import TransactionForm from "./components/TransactionForm";
 import NotificationsPage from "./pages/NotificationsPage";
 import Reports from "./pages/Reports";
+import ProjectsList from "./pages/ProjectsList";
 
 function App() {
   return (
@@ -104,6 +105,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Reports />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ProjectsList />
                 </Layout>
               </ProtectedRoute>
             }

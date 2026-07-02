@@ -68,7 +68,7 @@ const Navbar = () => {
       <div className="mx-auto" style={{ padding: "0 32px", maxWidth: "1440px", }} >
         <div className="flex justify-between items-center h-full">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
+            <div className="shrink-0 flex items-center">
               <Link
                   to="/"
                   className="flex items-center gap-3 text-white"
@@ -130,6 +130,16 @@ const Navbar = () => {
                   Reports
                 </Link>
               )}
+
+              <Link
+                to="/projects"
+               className={`relative text-base font-medium transition-all duration-200 ${
+                    isActive("/projects")
+                    ? "text-white border-b-2 border-white"
+                    : "text-white/75 hover:text-white"
+                }`}>
+                Projects
+              </Link>
             </div>
           </div>
           <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
@@ -289,9 +299,22 @@ const Navbar = () => {
             >
               Reports
             </Link>
+            <Link
+              to="/projects"
+              className={`${
+                isActive("/projects")
+                  ? "bg-green-700 text-white"
+                  : "text-green-100 hover:bg-green-700 hover:text-white"
+              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+              onClick={() =>
+                document.getElementById("mobile-menu").classList.add("hidden")
+              }
+            >
+              Projects
+            </Link>
             <div className="pt-4 pb-3 border-t border-green-700">
               <div className="flex items-center px-3">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
                     <span className="text-white">👤</span>
                   </div>
