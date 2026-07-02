@@ -17,7 +17,8 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { canAccessFeature, filterByCropGroup } from "../utils/accessControl";
 import { getSelectedCropGroup } from "../constants/cropCatalog";
-import { PieChart, Database, BarChart2, Activity, TrendingUp } from "lucide-react";
+import { toTitleCase } from "../utils/textFormat";
+import { PieChart, Database, BarChart2, Activity, TrendingUp, Folder } from "lucide-react";
 
 ChartJS.register(
   ArcElement,
@@ -35,6 +36,7 @@ const REPORTS_NAV = [
   { id: "crop-dist", label: "Crop Distribution", icon: <PieChart className="w-5 h-5" /> },
   { id: "storage", label: "Storage Area Utilization", icon: <Database className="w-5 h-5" /> },
   { id: "variety", label: "Variety Distribution per Crop", icon: <BarChart2 className="w-5 h-5" /> },
+  { id: "project-dist", label: "Project Stock Distribution", icon: <Folder className="w-5 h-5" /> },
   { id: "trans-vol", label: "Transaction Volume by Type", icon: <Activity className="w-5 h-5" /> },
   { id: "trans-trends", label: "Transaction Trends Over Time", icon: <TrendingUp className="w-5 h-5" /> },
 ];
@@ -68,6 +70,7 @@ const Reports = () => {
   // Dashboard UI state
   const [activeReport, setActiveReport] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -126,9 +129,24 @@ const Reports = () => {
 
   // Data Extraction Functions
 
+  const getFilteredSeeds = () => {
+    if (!selectedProjectId) return reportData.seeds;
+    return reportData.seeds.filter((s) => s.project_id === selectedProjectId);
+  };
+
+  const getFilteredTransactions = () => {
+    if (!selectedProjectId) return reportData.transactions;
+    const projectSeedIds = new Set(
+      reportData.seeds
+        .filter((s) => s.project_id === selectedProjectId)
+        .map((s) => s.seed_id)
+    );
+    return reportData.transactions.filter((t) => projectSeedIds.has(t.seed_id));
+  };
+
   const getCropDistributionData = () => {
     const cropData = {};
-    reportData.seeds.forEach((seed) => {
+    getFilteredSeeds().forEach((seed) => {
       const quantity = Number(seed.current_quantity) || 0;
       cropData[seed.crop_type] = (cropData[seed.crop_type] || 0) + quantity;
     });
@@ -147,7 +165,7 @@ const Reports = () => {
 
   const getStorageUtilizationData = () => {
     const storageData = {};
-    reportData.seeds.forEach((seed) => {
+    getFilteredSeeds().forEach((seed) => {
       const area =
         rooms.find((room) => room.room_id === seed.storage_area)?.room_name ||
         seed.storage_area_name ||
@@ -174,7 +192,7 @@ const Reports = () => {
     const cropTotals = {};
     const varietyTotals = {};
 
-    reportData.seeds.forEach((seed) => {
+    getFilteredSeeds().forEach((seed) => {
       const crop = (seed.crop_type || "").trim();
       const variety = (seed.variety || "").trim();
       const quantity = Number(seed.current_quantity) || 0;
@@ -198,7 +216,7 @@ const Reports = () => {
     const varietyColors = {};
     const cropColorIndex = {};
 
-    reportData.seeds.forEach((seed) => {
+    getFilteredSeeds().forEach((seed) => {
       const variety = (seed.variety || "").trim();
       if (!varietyColors[variety]) {
         const crop = (seed.crop_type || "").trim().toLowerCase();
@@ -223,9 +241,52 @@ const Reports = () => {
     };
   };
 
+  const getProjectDistributionData = () => {
+    const projData = {};
+    
+    // Initialize all projects with 0 quantity
+    if (Array.isArray(reportData.projects)) {
+      reportData.projects.forEach((proj) => {
+        if (proj && proj.project_name) {
+          projData[proj.project_name] = 0;
+        }
+      });
+    }
+    
+    projData["Unassigned"] = 0;
+
+    getFilteredSeeds().forEach((seed) => {
+      const projName = seed.project_name || "Unassigned";
+      const quantity = Number(seed.current_quantity) || 0;
+      projData[projName] = (projData[projName] || 0) + quantity;
+    });
+
+    if (projData["Unassigned"] === 0) {
+      delete projData["Unassigned"];
+    }
+
+    // Sort projects in descending order based on stock quantity (highest on left)
+    const sortedProjects = Object.entries(projData).sort((a, b) => b[1] - a[1]);
+    const labels = sortedProjects.map((entry) => entry[0]);
+    const data = sortedProjects.map((entry) => entry[1]);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Stock Quantity (kg)",
+          data,
+          backgroundColor: COLORS,
+          borderColor: "#fff",
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
   const getTransactionVolumeData = () => {
     const volumeData = {};
-    reportData.transactions.forEach((transaction) => {
+    getFilteredTransactions().forEach((transaction) => {
       const quantity = Number(transaction.quantity) || 0;
       volumeData[transaction.type] =
         (volumeData[transaction.type] || 0) + quantity;
@@ -246,7 +307,7 @@ const Reports = () => {
 
   const getTransactionTrendsData = () => {
     const monthlyData = {};
-    reportData.transactions.forEach((transaction) => {
+    getFilteredTransactions().forEach((transaction) => {
       const date = new Date(transaction.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (!monthlyData[monthKey]) {
@@ -297,15 +358,116 @@ const Reports = () => {
       case "storage":
         return `${getStorageUtilizationData().labels.length} Storage Areas`;
       case "variety": {
-        const varieties = [...new Set(reportData.seeds.map((s) => s.variety))];
+        const varieties = [...new Set(getFilteredSeeds().map((s) => s.variety))];
         return `${varieties.length} Total Varieties`;
       }
+      case "project-dist":
+        return `${getProjectDistributionData().labels.length} Projects`;
       case "trans-vol":
         return `${getTransactionVolumeData().labels.length} Transaction Types`;
       case "trans-trends":
-        return `${reportData.transactions.length} Transactions`;
+        return `${getFilteredTransactions().length} Transactions`;
       default:
         return "";
+    }
+  };
+
+  const getReportTableData = () => {
+    switch (activeReport) {
+      case "crop-dist": {
+        const data = getCropDistributionData();
+        const rows = data.labels.map((label, idx) => ({
+          label: toTitleCase(label),
+          value: `${data.datasets[0].data[idx].toFixed(2)} kg`,
+        })).sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+        return {
+          headers: ["Crop Type", "Total Stock Quantity"],
+          rows,
+        };
+      }
+      case "storage": {
+        const data = getStorageUtilizationData();
+        const rows = data.labels.map((label, idx) => ({
+          label: toTitleCase(label),
+          value: `${data.datasets[0].data[idx].toFixed(2)} kg`,
+        })).sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+        return {
+          headers: ["Storage Area", "Stock Quantity"],
+          rows,
+        };
+      }
+      case "variety": {
+        const varietyByType = {};
+        getFilteredSeeds().forEach((seed) => {
+          const crop = toTitleCase(seed.crop_type || "");
+          const variety = toTitleCase(seed.variety || "");
+          const quantity = Number(seed.current_quantity) || 0;
+          if (!varietyByType[crop]) varietyByType[crop] = {};
+          varietyByType[crop][variety] = (varietyByType[crop][variety] || 0) + quantity;
+        });
+        const rows = [];
+        Object.entries(varietyByType).forEach(([crop, vars]) => {
+          Object.entries(vars).forEach(([variety, qty]) => {
+            rows.push({
+              label: `${crop} - ${variety}`,
+              value: `${qty.toFixed(2)} kg`,
+            });
+          });
+        });
+        rows.sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+        return {
+          headers: ["Crop & Variety", "Stock Quantity"],
+          rows,
+        };
+      }
+      case "project-dist": {
+        const data = getProjectDistributionData();
+        const rows = data.labels.map((label, idx) => ({
+          label: toTitleCase(label),
+          value: `${data.datasets[0].data[idx].toFixed(2)} kg`,
+        }));
+        return {
+          headers: ["Project", "Stock Quantity"],
+          rows,
+        };
+      }
+      case "trans-vol": {
+        const data = getTransactionVolumeData();
+        const rows = data.labels.map((label, idx) => ({
+          label: toTitleCase(label),
+          value: `${data.datasets[0].data[idx].toFixed(2)} kg`,
+        })).sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+        return {
+          headers: ["Transaction Type", "Total Volume"],
+          rows,
+        };
+      }
+      case "trans-trends": {
+        const monthlyData = {};
+        getFilteredTransactions().forEach((transaction) => {
+          const date = new Date(transaction.created_at);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          if (!monthlyData[monthKey]) {
+            monthlyData[monthKey] = { checkout: 0, disposal: 0 };
+          }
+          const type = (transaction.type || "").toLowerCase();
+          if (type.includes("out")) {
+            monthlyData[monthKey].checkout += 1;
+          } else if (type.includes("dispos")) {
+            monthlyData[monthKey].disposal += 1;
+          }
+        });
+        const rows = Object.keys(monthlyData).sort().map((month) => ({
+          label: month,
+          value: `Check-outs: ${monthlyData[month].checkout} | Disposals: ${monthlyData[month].disposal}`,
+        }));
+        return {
+          headers: ["Month", "Activity Summary"],
+          rows,
+        };
+      }
+      default:
+        return null;
     }
   };
 
@@ -367,6 +529,24 @@ const Reports = () => {
     },
   };
 
+  const projectChartOptions = {
+    ...chartOptions,
+    scales: {
+      x: {
+        ticks: { 
+          color: "#64748B",
+          font: { size: 11, weight: "600" }, 
+          maxRotation: 45, 
+          minRotation: 0,
+          autoSkip: false
+        },
+      },
+      y: {
+        ticks: { font: { size: 11 } },
+      },
+    },
+  };
+
   //  Early Returns for Loading/Auth/Error
   if (authLoading || loading) {
     return (
@@ -420,7 +600,7 @@ const Reports = () => {
   const activeProjects = reportData.projects.length;
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6 md:py-8" style={{ backgroundColor: "#F5F7F5" }}>
+    <div className="min-h-screen px-4 py-6 md:px-6 md:py-8 report-page-container" style={{ backgroundColor: "#F5F7F5" }}>
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(5px); }
@@ -428,6 +608,45 @@ const Reports = () => {
         }
         .chart-container-animate {
           animation: fadeIn 0.4s ease-out forwards;
+        }
+        @media print {
+          header, nav, aside, .no-print, button, select, .grid {
+            display: none !important;
+          }
+          body, #root, main, .bg-white, .report-page-container {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .max-w-\[1600px\] {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .chart-container-animate {
+            height: auto !important;
+            min-height: auto !important;
+            display: block !important;
+          }
+          .relative.min-h-\[400px\] {
+            height: 380px !important;
+            min-height: 380px !important;
+            page-break-inside: avoid !important;
+          }
+          table {
+            width: 100% !important;
+            margin-top: 15px !important;
+            border-collapse: collapse !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+          }
         }
       `}</style>
       
@@ -549,33 +768,30 @@ const Reports = () => {
                       {getBadgeText(activeReport)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 relative">
-                    <button 
-                      onClick={() => setShowExportMenu(!showExportMenu)} 
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#116B2B] text-white hover:bg-[#0e5c24] border border-transparent focus:outline-none transition-colors"
-                    >
-                      Export
-                      <svg className={`w-4 h-4 text-white transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    
-                    {showExportMenu && (
-                      <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 py-1.5 z-10">
-                        <button 
-                          onClick={() => { handleExport('pdf'); setShowExportMenu(false); }} 
-                          className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#1B5E20] transition-colors"
+                  <div className="flex items-center gap-3 shrink-0 relative no-print">
+                    {activeReport !== "project-dist" && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-semibold text-gray-600">Project:</label>
+                        <select
+                          value={selectedProjectId}
+                          onChange={(e) => setSelectedProjectId(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-[#116B2B] focus:border-[#116B2B] font-medium outline-none cursor-pointer"
                         >
-                          Export as PDF
-                        </button>
-                        <button 
-                          onClick={() => { handleExport('csv'); setShowExportMenu(false); }} 
-                          className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#1B5E20] transition-colors"
-                        >
-                          Export as CSV
-                        </button>
+                          <option value="">All Projects</option>
+                          {reportData.projects.map((p) => (
+                            <option key={p.project_id} value={p.project_id}>
+                              {p.project_name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     )}
+                    <button 
+                      onClick={() => handleExport('pdf')} 
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#116B2B] text-white hover:bg-[#0e5c24] border border-transparent focus:outline-none transition-colors"
+                    >
+                      Export as PDF
+                    </button>
                   </div>
                 </div>
                 
@@ -608,6 +824,15 @@ const Reports = () => {
                     )
                   )}
 
+                  {/* PROJECT STOCK DISTRIBUTION */}
+                  {activeReport === "project-dist" && (
+                    getProjectDistributionData().labels.length > 0 ? (
+                      <Bar data={getProjectDistributionData()} options={projectChartOptions} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400">No data available</div>
+                    )
+                  )}
+
                   {/* TRANSACTION VOLUME */}
                   {activeReport === "trans-vol" && (
                     getTransactionVolumeData().labels.length > 0 ? (
@@ -626,6 +851,53 @@ const Reports = () => {
                     )
                   )}
                 </div>
+
+                {/* Data Table Breakdown - Screen & Print */}
+                {activeReport && getReportTableData() && (
+                  <div className="mt-8 border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">
+                      Data Breakdown
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 border border-gray-100 rounded-lg overflow-hidden">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            {getReportTableData()?.headers.map((header) => (
+                              <th
+                                key={header}
+                                className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                              >
+                                {header}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {getReportTableData()?.rows.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {row.label}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">
+                                {row.value}
+                              </td>
+                            </tr>
+                          ))}
+                          {(!getReportTableData()?.rows || getReportTableData()?.rows.length === 0) && (
+                            <tr>
+                              <td
+                                colSpan="2"
+                                className="px-6 py-4 text-center text-sm text-gray-400"
+                              >
+                                No data available
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

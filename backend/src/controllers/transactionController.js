@@ -281,27 +281,13 @@ const TransactionController = {
   // Export all transactions with applied filters as Excel file
   async exportExcel(req, res) {
     try {
-      const {
-        seed_id,
-        seed_lot_id,
-        transaction_type,
-        type,
-        crop_type,
-        variety,
-        start_date,
-        end_date,
-      } = req.query;
-
+      const { query, user = {} } = req;
+      
       const transactions = await TransactionModel.getAll({
-        seed_id: seed_id || seed_lot_id,
-        transaction_type,
-        type,
-        crop_type,
-        variety,
-        start_date,
-        end_date,
-        userRole: req.user?.role,
-        userId: req.user?.userId,
+        ...query,
+        seed_id: query.seed_id || query.seed_lot_id,
+        userRole: user.role,
+        userId: user.userId,
       });
 
       const XLSX = require("xlsx");
@@ -319,20 +305,19 @@ const TransactionController = {
         "Contact": tx.contact || "",
         "Remarks": tx.remarks || "",
         "Logged By": tx.first_name && tx.last_name ? `${tx.first_name} ${tx.last_name}` : "Unknown",
-        "Date": tx.created_at ? new Date(tx.created_at).toISOString().split('T')[0] : "",
+        "Date": tx.created_at ? tx.created_at.split('T')[0] : "",
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
 
-      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       res.setHeader("Content-Disposition", `attachment; filename=transactions_${Date.now()}.xlsx`);
-      res.send(buffer);
+      res.send(XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }));
+
     } catch (error) {
-      console.error("Export transactions error:", error);
+      console.error("Export error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -502,7 +487,7 @@ const TransactionController = {
         "2026-06-soybean-Tiwala 6",
         "outgoing",
         50.0,
-        "Angela Banasihan",
+        "Tanim Admin",
         "Research Project distribution",
         "UPLB Institute of Plant Breeding",
         "09123456789",
