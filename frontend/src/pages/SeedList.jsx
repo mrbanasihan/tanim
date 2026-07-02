@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 import { getSelectedCropGroup, FAMILY_GROUPS, CROP_PROJECTS, CROP_CATALOG } from "../constants/cropCatalog";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 
 // SeedList
 // Lists all seed lots with filtering by crop type, variety, and project; interacts with seeds API and access control
@@ -25,6 +26,8 @@ const SeedList = () => {
   const [varieties, setVarieties] = useState([]);
   const [cropVarietyMap, setCropVarietyMap] = useState({});
   const [projects, setProjects] = useState([]);
+  const [showSeedModal, setShowSeedModal] = useState(false);
+  const [editingSeedId, setEditingSeedId] = useState(null);
   const [showCropTypeDropdown, setShowCropTypeDropdown] = useState(false);
   const [showVarietyDropdown, setShowVarietyDropdown] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
@@ -534,73 +537,94 @@ const SeedList = () => {
       <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 mb-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold mb-1" style={{ color: "#1B5E20" }}>
               Seed Lots
             </h1>
-            <p className="text-sm text-slate-500">
-              Browse all seed lot records in the system. Use the search,
-              filters, and sorting options. Deleted records are hidden from the
-              list.
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Browse all seed lot records in the system.
             </p>
           </div>
           <div className="flex items-center space-x-2">
             {["admin", "staff"].includes(user?.role) && (
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={() => fileInputRef.current.click()}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
-                  style={{
-                    backgroundColor: "#F5F7F5",
-                    color: "#555",
-                    border: "1px solid #ddd",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#126B2C";
-                    e.currentTarget.style.color = "#FFFFFF";
-                    e.currentTarget.style.border = "1px solid #126B2C";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#F5F7F5";
-                    e.currentTarget.style.color = "#555";
-                    e.currentTarget.style.border = "1px solid #ddd";
-                  }}
-                  title="Import seed lots from Excel"
-                >
-                  Import Excel
-                </button>
-                <button
-                  onClick={handleDownloadTemplate}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
-                  style={{
-                    backgroundColor: "#F5F7F5",
-                    color: "#555",
-                    border: "1px solid #ddd",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#237F18";
-                    e.currentTarget.style.color = "#FFFFFF";
-                    e.currentTarget.style.border = "1px solid #237F18";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#F5F7F5";
-                    e.currentTarget.style.color = "#555";
-                    e.currentTarget.style.border = "1px solid #ddd";
-                  }}
-                  title="Download seed import template"
-                >
-                  Template
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImportExcel}
-                  accept=".xlsx,.xls"
-                  className="hidden"
-                />
-              </div>
-            )}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleExportExcel}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+                    style={{
+                      backgroundColor: "#F5F7F5",
+                      color: "#555",
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#126B2C";
+                      e.currentTarget.style.color = "#FFFFFF";
+                      e.currentTarget.style.border = "1px solid #126B2C";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#F5F7F5";
+                      e.currentTarget.style.color = "#555";
+                      e.currentTarget.style.border = "1px solid #ddd";
+                    }}
+                    title="Export filtered/all transactions to Excel"
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+                    style={{
+                      backgroundColor: "#F5F7F5",
+                      color: "#555",
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#126B2C";
+                      e.currentTarget.style.color = "#FFFFFF";
+                      e.currentTarget.style.border = "1px solid #126B2C";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#F5F7F5";
+                      e.currentTarget.style.color = "#555";
+                      e.currentTarget.style.border = "1px solid #ddd";
+                    }}
+                    title="Import transactions from Excel"
+                  >
+                    Import Excel
+                  </button>
+                  <button
+                    onClick={handleDownloadTemplate}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
+                    style={{
+                      backgroundColor: "#F5F7F5",
+                      color: "#555",
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#237F18";
+                      e.currentTarget.style.color = "#FFFFFF";
+                      e.currentTarget.style.border = "1px solid #237F18";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#F5F7F5";
+                      e.currentTarget.style.color = "#555";
+                      e.currentTarget.style.border = "1px solid #ddd";
+                    }}
+                    title="Download transaction import template"
+                  >
+                    Template
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImportExcel}
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                  />
+                </div>
+              )}
             {["admin", "researcher", "staff"].includes(user?.role) && (
               <Link
                 to="/seeds/new"
@@ -612,12 +636,12 @@ const SeedList = () => {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
                 </svg>
                 Add New Seed Lot
               </Link>
@@ -924,7 +948,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("name")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "name"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -968,7 +992,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("quantity")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "quantity"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -1005,7 +1029,7 @@ const SeedList = () => {
                   onClick={() => toggleSort("date")}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${
                     sortType === "date"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#86B839] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   title={
@@ -1069,7 +1093,7 @@ const SeedList = () => {
                   Search: {searchTerm}
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="ml-1.5 hover:text-blue-600 font-bold"
+                    className="ml-1.5 hover:text-[#86B839]font-bold"
                   >
                     ×
                   </button>
@@ -1124,31 +1148,6 @@ const SeedList = () => {
           {Math.min(indexOfLastItem, totalItems)} of {totalItems} seed lots{" "}
           {totalItems < seeds.length && `(filtered from ${seeds.length} total)`}
         </div>
-        {["admin", "staff"].includes(user?.role) && (
-          <button
-            onClick={handleExportExcel}
-            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
-            style={{
-              backgroundColor: "#F5F7F5",
-              color: "#555",
-              border: "1px solid #ddd",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#126B2C";
-              e.currentTarget.style.color = "#FFFFFF";
-              e.currentTarget.style.border = "1px solid #126B2C";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#F5F7F5";
-              e.currentTarget.style.color = "#555";
-              e.currentTarget.style.border = "1px solid #ddd";
-            }}
-            title="Export filtered/all seed lots to Excel"
-          >
-            Export Excel
-          </button>
-        )}
       </div>
 
       {/* Seeds Table */}
@@ -1210,29 +1209,36 @@ const SeedList = () => {
                       </span>{" "}
                       kg
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                      <Link
-                        to={`/seeds/${seed.seed_id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View
-                      </Link>
-                      {["admin", "researcher"].includes(user?.role) && (
-                        <>
-                          <Link
-                            to={`/seeds/${seed.seed_id}/edit`}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            Edit
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(seed.seed_id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
+                   <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <Link
+                          to={`/seeds/${seed.seed_id}`}
+                          className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                          title="View"
+                        >
+                          <Eye size={18} />
+                        </Link>
+
+                        {["admin", "researcher"].includes(user?.role) && (
+                          <>
+                            <Link
+                              to={`/seeds/${seed.seed_id}/edit`}
+                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={18} />
+                            </Link>
+
+                            <button
+                              onClick={() => handleDelete(seed.seed_id)}
+                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1333,8 +1339,8 @@ const SeedList = () => {
                       aria-current={currentPage === page ? "page" : undefined}
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition ${
                         currentPage === page
-                          ? "z-10 bg-blue-600 border-blue-600 text-white"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                           ? "z-10 bg-[#237F18] border-[#237F18] text-white"
+                           : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                       }`}
                     >
                       {page}

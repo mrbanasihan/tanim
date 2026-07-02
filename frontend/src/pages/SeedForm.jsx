@@ -507,14 +507,14 @@ const SeedForm = () => {
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+              className="bg-[#116B2B] text-white font-bold py-2 px-4 rounded disabled:opacity-50"
             >
               {loading ? "Saving..." : isEditing ? "Update" : "Create"}
             </button>
             <button
               type="button"
               onClick={() => navigate("/seeds")}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-[#3fa232] text-white font-bold py-2 px-4 rounded"
             >
               Cancel
             </button>

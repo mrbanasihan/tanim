@@ -19,6 +19,8 @@ function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // normalizeTransaction
   // Normalizes transaction data structure from API response
@@ -85,7 +87,7 @@ function Dashboard() {
               ? `/projects?crop_group=${initialGroup}`
               : "/projects",
           ),
-          api.get("/transactions?limit=10"),
+          api.get("/transactions"),
         ]);
 
         const filteredSeeds = filterByCropGroup(
@@ -153,13 +155,46 @@ function Dashboard() {
   };
 
   const CROP_GROUP_PILLS = [
-    { key: "all", label: "All" },
     { key: "vegetables", label: "Vegetables" },
     { key: "legumes", label: "Legumes" },
     { key: "cereals", label: "Cereals" },
   ];
 
   const filteredTransactions = stats.recentTransactions;
+  const totalItems = filteredTransactions.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+  
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (currentPage <= 3) {
+        pages.push(2);
+        pages.push(3);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push("...");
+        pages.push(totalPages - 2);
+        pages.push(totalPages - 1);
+        pages.push(totalPages);
+      } else {
+        pages.push("...");
+        pages.push(currentPage);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   const displayName =
     user?.name || user?.email?.split("@")[0] || "Admin";
 
@@ -258,7 +293,7 @@ function Dashboard() {
                 {stats.recentTransactions.length}
               </p>
               <span className="text-xs text-gray-400 mt-1">
-                Last 10 recorded
+                {stats.recentTransactions.length} recorded
               </span>
             </div>
           </div>
@@ -275,7 +310,6 @@ function Dashboard() {
                 const isActive = selectedGroup === pill.key;
 
                 const groupColors = {
-                  all: "#055E1F",
                   vegetables: "#126B2C",
                   legumes: "#237F18",
                   cereals: "#D4AF17",
@@ -380,7 +414,7 @@ function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y" style={{ borderColor: "#F0F4F0" }}>
-                    {filteredTransactions.map((transaction) => (
+                    {currentTransactions.map((transaction) => (
                       <tr
                         key={transaction.id}
                         className="hover:bg-green-50 transition-colors duration-100"
@@ -420,6 +454,104 @@ function Dashboard() {
                   No transactions found
                   {selectedGroup !== "all" ? ` for ${selectedGroup}` : ""}
                 </p>
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center bg-white px-4 py-3 rounded-b-xl border-t border-[#E0E0E0]">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Page <span className="font-medium">{currentPage}</span> of{" "}
+                      <span className="font-medium">{totalPages}</span>
+                    </p>
+                  </div>
+                  <div>
+                    <nav
+                      className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                      aria-label="Pagination"
+                    >
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <svg
+                          className="h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                      {getPageNumbers().map((page, idx) => (
+                        page === "..." ? (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500"
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            aria-current={currentPage === page ? "page" : undefined}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition ${
+                              currentPage === page
+                                ? "z-10 bg-[#237F18] border-[#237F18] text-white"
+                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      ))}
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Next</span>
+                        <svg
+                          className="h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </nav>
+                  </div>
+                </div>
               </div>
             )}
           </div>

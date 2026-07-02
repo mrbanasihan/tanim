@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+import ipbLogo from "../assets/ipbLogo.png";
+import tanimLogo from "../assets/tanimLogo.png";
 
 // Navbar
 // Navigation bar with links, crop group switcher, and user menu; interacts with AuthContext and manages crop group selection
@@ -80,8 +82,8 @@ const Navbar = () => {
                   to="/"
                   className="flex items-center gap-3 text-white"
                 >
-                  {/* LOGO PLACEMENT HERE!! */}
-                  <div className="w-8 h-8 rounded-full border-2 border-white"></div>
+                  <img src={ipbLogo} alt="IPB Logo" className="w-10 h-10 object-contain" />
+                  <img src={tanimLogo} alt="TANIM Logo" className="w-10 h-10 object-contain" />
                 <span className="text-2xl font-bold tracking-wide text-white">
                   TANIM
                 </span>
@@ -150,16 +152,15 @@ const Navbar = () => {
               onMouseEnter={() => setShowUserMenu(true)}
               onMouseLeave={() => setShowUserMenu(false)}
             >
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md cursor-pointer hover:bg-white/20 transition-all duration-200">
-                <div className="w-8 h-8 bg-[#FFFFC7] rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md cursor-pointer hover:bg-white/20 transition-all duration-200 shrink-0 max-w-[200px]">
+                <div className="w-8 h-8 shrink-0 bg-[#FFFFC7] rounded-full flex items-center justify-center overflow-hidden">
                   <span className="text-white text-sm">👨🏻‍💼</span>
                 </div>
-                <div className="text-sm">
-                  <p className="text-white/75 text-xs">
+                <div className="text-sm min-w-0 pr-1">
+                  <p className="text-white/75 text-xs truncate">
                       Welcome back
                   </p>
-
-                  <p className="text-[#116B2B] font-bold">
+                  <p className="text-[#116B2B] font-bold truncate max-w-[120px]" title={user?.name || user?.email?.split("@")[0] || "User"}>
                     {user?.name || user?.email?.split("@")[0] || "User"}
                   </p>
                 </div>
