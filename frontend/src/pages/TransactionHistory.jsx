@@ -30,14 +30,17 @@ const TransactionHistory = () => {
   const [showTxModal, setShowTxModal] = useState(false);
   const [editingTxId, setEditingTxId] = useState(null);
   const navigate = useNavigate();
-  const canManageTransactionActions = ["admin", "researcher"].includes(
+  const canEditTransactions = ["admin", "researcher", "staff"].includes(
+    user?.role,
+  );
+  const canDeleteTransactions = ["admin", "researcher"].includes(
     user?.role,
   );
 
   // handleDeleteTransaction
   // Deletes a transaction after user confirmation and refreshes transaction list
   const handleDeleteTransaction = async (transactionId) => {
-    if (!canManageTransactionActions) return;
+    if (!canDeleteTransactions) return;
 
     const confirmed = window.confirm(
       "Are you sure you want to delete this transaction? This will restore the deducted quantity.",
@@ -419,7 +422,7 @@ const TransactionHistory = () => {
               </p>
             </div>
             <div className="flex items-center space-x-2">
-                {["admin", "staff"].includes(user?.role) && (
+                {["admin", "staff", "researcher"].includes(user?.role) && (
                   <>
                     <button
                       onClick={handleExportExcel}
@@ -499,28 +502,30 @@ const TransactionHistory = () => {
                     />
                   </>
                 )}
-                <button
-                  onClick={() => {
-                    setEditingTxId(null);
-                    setShowTxModal(true);
-                  }}
-                  className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md cursor-pointer"
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {user?.role !== "guest" && (
+                  <button
+                    onClick={() => {
+                      setEditingTxId(null);
+                      setShowTxModal(true);
+                    }}
+                    className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md cursor-pointer"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add New Transaction
-                </button>
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add New Transaction
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -879,7 +884,7 @@ const TransactionHistory = () => {
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                                 Date
                               </th>
-                              {canManageTransactionActions && (
+                              {canEditTransactions && (
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                                   Actions
                                 </th>
@@ -927,7 +932,7 @@ const TransactionHistory = () => {
                                     ).toLocaleDateString()}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    {canManageTransactionActions && (
+                                    {canEditTransactions && (
                                       <div className="flex items-center gap-3">
                                         <button
                                           onClick={() => {
@@ -940,15 +945,17 @@ const TransactionHistory = () => {
                                           <Pencil size={18} />
                                         </button>
 
-                                        <button
-                                          onClick={() =>
-                                            handleDeleteTransaction(transaction.id)
-                                          }
-                                          className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                                          title="Delete"
-                                        >
-                                          <Trash2 size={18} />
-                                        </button>
+                                        {canDeleteTransactions && (
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteTransaction(transaction.id)
+                                            }
+                                            className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                            title="Delete"
+                                          >
+                                            <Trash2 size={18} />
+                                          </button>
+                                        )}
                                       </div>
                                     )}
                                   </td>
@@ -1092,7 +1099,7 @@ const TransactionHistory = () => {
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                                 Date
                               </th>
-                              {canManageTransactionActions && (
+                              {canEditTransactions && (
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                                   Actions
                                 </th>
@@ -1127,30 +1134,32 @@ const TransactionHistory = () => {
                                     ).toLocaleDateString()}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    {canManageTransactionActions && (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={() => {
-                                          setEditingTxId(transaction.id);
-                                          setShowTxModal(true);
-                                        }}
-                                        className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
-                                        title="Edit"
-                                      >
-                                        <Pencil size={18} />
-                                      </button>
+                                    {canEditTransactions && (
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          onClick={() => {
+                                            setEditingTxId(transaction.id);
+                                            setShowTxModal(true);
+                                          }}
+                                          className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
+                                          title="Edit"
+                                        >
+                                          <Pencil size={18} />
+                                        </button>
 
-                                      <button
-                                        onClick={() =>
-                                          handleDeleteTransaction(transaction.id)
-                                        }
-                                        className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                                        title="Delete"
-                                      >
-                                        <Trash2 size={18} />
-                                      </button>
-                                    </div>
-                                  )}
+                                        {canDeleteTransactions && (
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteTransaction(transaction.id)
+                                            }
+                                            className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                            title="Delete"
+                                          >
+                                            <Trash2 size={18} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               ))}

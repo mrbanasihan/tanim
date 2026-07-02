@@ -20,8 +20,8 @@ const SeedDetail = () => {
   const [error, setError] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTxModal, setShowTxModal] = useState(false);
-  const canEditSeed = ["admin", "staff"].includes(user?.role);
-  const canDeleteSeed = user?.role === "admin";
+  const canEditSeed = ["admin", "staff", "researcher"].includes(user?.role);
+  const canDeleteSeed = ["admin", "researcher"].includes(user?.role);
 
   const normalizeTransaction = (transaction) => ({
     ...transaction,
@@ -136,25 +136,27 @@ const SeedDetail = () => {
             </h1>
 
             <div className="flex space-x-3">
-              <Link
-                to={`/seeds/${id}/germination`}
-                className="bg-[#116B2B] hover:bg-[#0d5622] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {user?.role !== "guest" && (
+                <Link
+                  to={`/seeds/${id}/germination`}
+                  className="bg-[#116B2B] hover:bg-[#0d5622] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>Record Germination</span>
-              </Link>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>Record Germination</span>
+                </Link>
+              )}
 
               {canEditSeed && (
                 <button
@@ -256,7 +258,7 @@ const SeedDetail = () => {
               <label className="block text-sm font-semibold text-slate-600 mb-1">
                 Gross Weight (kg)
               </label>
-              <p className="text-lg font-medium text-green-600 font-bold">
+              <p className="text-lg font-medium text-green-600">
                 {seed.gross_weight}
               </p>
             </div>
@@ -264,7 +266,7 @@ const SeedDetail = () => {
               <label className="block text-sm font-semibold text-slate-600 mb-1">
                 Cleaned Weight (kg)
               </label>
-              <p className="text-lg font-medium text-blue-600 font-bold">
+              <p className="text-lg font-medium text-blue-600">
                 {seed.cleaned_quantity}
               </p>
             </div>
@@ -272,7 +274,7 @@ const SeedDetail = () => {
               <label className="block text-sm font-semibold text-slate-600 mb-1">
                 Current Weight (kg)
               </label>
-              <p className="text-lg font-medium text-purple-600 font-bold">
+              <p className="text-lg font-medium text-purple-600">
                 {seed.current_quantity}
               </p>
             </div>
@@ -307,7 +309,7 @@ const SeedDetail = () => {
                 <label className="block text-sm font-semibold text-slate-600 mb-1">
                   Latest Germination Rate
                 </label>
-                <p className="text-lg font-medium text-orange-600 font-bold">
+                <p className="text-lg font-medium text-orange-600">
                   {latestGermination.germination_rate}%
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
@@ -372,7 +374,7 @@ const SeedDetail = () => {
                         key={record.germination_id}
                         className="hover:bg-slate-50"
                       >
-                        <td className="px-4 py-3 text-sm text-slate-700 font-semibold text-orange-600">
+                        <td className="px-4 py-3 text-sm text-slate-700 font-semibold">
                           {record.germination_rate}%
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-700">
@@ -403,25 +405,27 @@ const SeedDetail = () => {
             <h2 className="text-xl font-semibold text-slate-900">
               Transaction History
             </h2>
-            <button
-              onClick={() => setShowTxModal(true)}
-              className="bg-[#86B839] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2 cursor-pointer"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {user?.role !== "guest" && (
+              <button
+                onClick={() => setShowTxModal(true)}
+                className="bg-[#86B839] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2 cursor-pointer"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              <span>Add Transaction</span>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                <span>Add Transaction</span>
+              </button>
+            )}
           </div>
 
           {transactions.length === 0 ? (

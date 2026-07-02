@@ -274,8 +274,8 @@ const validateUserRegistration = (data) => {
     );
   }
 
-  if (data.role && !isValidEnum(data.role, ["admin", "staff", "guest"])) {
-    errors.push("Role must be one of: admin, staff, guest");
+  if (data.role && !isValidEnum(data.role, ["admin", "researcher", "staff", "guest"])) {
+    errors.push("Role must be one of: admin, researcher, staff, guest");
   }
 
   if (data.email && !isValidEmail(data.email)) {

@@ -306,6 +306,9 @@ function Dashboard() {
 
               {CROP_GROUP_PILLS.map((pill) => {
                 const isActive = selectedCropGroup === pill.key;
+                const isGroupAccessible =
+                  user?.role === "admin" ||
+                  user?.crop_groups?.includes(pill.key);
 
                 const groupColors = {
                   vegetables: "#126B2C",
@@ -316,7 +319,11 @@ function Dashboard() {
                 return (
                   <button
                     key={pill.key}
-                    onClick={() => changeCropGroup(pill.key)}
+                    onClick={() => {
+                      if (isGroupAccessible) {
+                        changeCropGroup(pill.key);
+                      }
+                    }}
                     className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none"
                     style={{
                       backgroundColor: isActive
@@ -333,10 +340,11 @@ function Dashboard() {
                       boxShadow: isActive
                         ? "0 2px 6px rgba(0,0,0,0.15)"
                         : "none",
-                      cursor: "pointer",
+                      cursor: isGroupAccessible ? "pointer" : "not-allowed",
+                      opacity: isGroupAccessible ? 1 : 0.4,
                     }}
                     onMouseEnter={(e) => {
-                      if (!isActive) {
+                      if (isGroupAccessible && !isActive) {
                         e.currentTarget.style.backgroundColor = groupColors[pill.key];
                         e.currentTarget.style.color =
                           pill.key === "cereals" ? "#1B3300" : "#FFFFFF";
@@ -344,7 +352,7 @@ function Dashboard() {
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isActive) {
+                      if (isGroupAccessible && !isActive) {
                         e.currentTarget.style.backgroundColor = "#F5F7F5";
                         e.currentTarget.style.color = "#555";
                         e.currentTarget.style.border = "1px solid #ddd";

@@ -59,10 +59,7 @@ const TransactionModel = {
       params.push(filters.end_date);
     }
 
-    if (filters.userRole === "guest" && filters.userId) {
-      query += ` AND t.user_id = $${paramIndex++}`;
-      params.push(filters.userId);
-    }
+
 
     query += ` ORDER BY t.created_at DESC`;
 
@@ -76,13 +73,9 @@ const TransactionModel = {
       FROM transaction t
       JOIN "user" u ON t.user_id = u.user_id
       WHERE t.seed_id = $1
-      ${userRole === "guest" && userId ? "AND t.user_id = $2" : ""}
       ORDER BY t.created_at DESC
     `;
-    const result = await db.query(
-      query,
-      userRole === "guest" && userId ? [seedId, userId] : [seedId],
-    );
+    const result = await db.query(query, [seedId]);
     return result.rows;
   },
 

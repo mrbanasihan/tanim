@@ -1,4 +1,4 @@
-import { CROP_GROUPS, CROP_CATALOG } from "../constants/cropCatalog";
+import { CROP_GROUPS, CROP_CATALOG, getSelectedCropGroup } from "../constants/cropCatalog";
 
 // canAccessFeature
 // Check if user role has permission for specific feature
@@ -24,9 +24,11 @@ export const canAccessFeature = (userRole, feature) => {
       "view_seeds",
       "create_seed",
       "edit_seed",
+      "delete_seed",
       "view_transactions",
       "create_transaction",
       "checkout_transaction",
+      "disposal_transaction",
       "view_germination",
       "create_germination",
       "view_reports",
@@ -40,15 +42,17 @@ export const canAccessFeature = (userRole, feature) => {
       "view_transactions",
       "create_transaction",
       "checkout_transaction",
+      "disposal_transaction",
       "view_germination",
+      "create_germination",
+      "view_reports",
       "view_notifications",
     ],
     guest: [
       "view_dashboard",
       "view_seeds",
       "view_transactions",
-      "create_transaction",
-      "checkout_transaction",
+      "view_reports",
     ],
   };
 
@@ -76,7 +80,7 @@ export const filterByCropGroup = (items, userRole, cropGroups) => {
   const selectedGroup = localStorage.getItem("selectedCropGroup");
 
   // For admin: if they have a selected group, filter by it; otherwise show all
-  if (userRole === "admin") {
+  if (userRole === "admin" || userRole === "guest") {
     // If admin has a selected crop group, filter by it
     if (selectedGroup && CROP_GROUPS.includes(selectedGroup)) {
       const visibleCrops = new Set();

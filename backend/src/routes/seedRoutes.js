@@ -14,14 +14,14 @@ router.get("/", authenticate, SeedController.getAll);
 router.get(
   "/export/excel",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin", "staff", "researcher"),
   SeedController.exportExcel,
 );
 
 router.post(
   "/import/excel",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin", "staff", "researcher"),
   upload.single("file"),
   SeedController.importExcel,
 );
@@ -29,7 +29,7 @@ router.post(
 router.get(
   "/import/template",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin", "staff", "researcher"),
   SeedController.downloadTemplate,
 );
 
@@ -46,15 +46,15 @@ router.get("/:id/germination-records", authenticate, (req, res) => {
 router.post(
   "/",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin", "staff", "researcher"),
   SeedController.create,
 );
 router.put(
   "/:id",
   authenticate,
-  authorize("admin", "staff"),
+  authorize("admin", "staff", "researcher"),
   SeedController.update,
 );
-router.delete("/:id", authenticate, authorize("admin"), SeedController.delete);
+router.delete("/:id", authenticate, authorize("admin", "researcher"), SeedController.delete);
 
 module.exports = router;

@@ -71,11 +71,13 @@ const AccessControlUtils = {
         "view_seeds",
         "create_seed",
         "edit_seed",
+        "delete_seed",
         "view_transactions",
         "create_transaction",
         "checkout_transaction",
         "view_germination",
         "create_germination",
+        "view_reports",
         "view_notifications",
       ],
       staff: [
@@ -86,13 +88,14 @@ const AccessControlUtils = {
         "create_transaction",
         "checkout_transaction",
         "view_germination",
+        "create_germination",
+        "view_reports",
         "view_notifications",
       ],
       guest: [
         "view_seeds",
         "view_transactions",
-        "create_transaction",
-        "checkout_transaction",
+        "view_reports",
       ],
     };
 

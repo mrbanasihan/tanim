@@ -22,6 +22,9 @@ const AuthController = {
         firstName: sanitizeString(req.body.firstName),
         lastName: sanitizeString(req.body.lastName),
         role: req.body.role,
+        cropGroups: Array.isArray(req.body.cropGroups || req.body.crop_groups)
+          ? (req.body.cropGroups || req.body.crop_groups)
+          : [],
       };
 
       const validation = validateUserRegistration(sanitizedData);
@@ -41,6 +44,7 @@ const AuthController = {
         sanitizedData.firstName,
         sanitizedData.lastName,
         sanitizedData.role || "guest",
+        sanitizedData.cropGroups,
       );
 
       res.status(201).json({

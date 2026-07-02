@@ -468,27 +468,7 @@ const SeedList = () => {
     }
   };
 
-  // Protect route - guests cannot access seed list
-  if (user && user.role === "guest") {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="text-center">
-          <p className="text-red-600 font-semibold text-lg mb-4">
-            Access Denied
-          </p>
-          <p className="text-gray-600 mb-6">
-            Guest users do not have access to seed lots.
-          </p>
-          <a
-            href="/dashboard"
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Return to Dashboard
-          </a>
-        </div>
-      </div>
-    );
-  }
+
 
   if (loading) {
     return (
@@ -546,7 +526,7 @@ const SeedList = () => {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            {["admin", "staff"].includes(user?.role) && (
+            {["admin", "staff", "researcher"].includes(user?.role) && (
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleExportExcel}
@@ -1223,27 +1203,27 @@ const SeedList = () => {
                           <Eye size={18} />
                         </Link>
 
-                        {["admin", "researcher"].includes(user?.role) && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingSeedId(seed.seed_id);
-                                setShowSeedModal(true);
-                              }}
-                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
-                              title="Edit"
-                            >
-                              <Pencil size={18} />
-                            </button>
+                        {["admin", "researcher", "staff"].includes(user?.role) && (
+                          <button
+                            onClick={() => {
+                              setEditingSeedId(seed.seed_id);
+                              setShowSeedModal(true);
+                            }}
+                            className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
+                            title="Edit"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                        )}
 
-                            <button
-                              onClick={() => handleDelete(seed.seed_id)}
-                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </>
+                        {["admin", "researcher"].includes(user?.role) && (
+                          <button
+                            onClick={() => handleDelete(seed.seed_id)}
+                            className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         )}
                       </div>
                     </td>

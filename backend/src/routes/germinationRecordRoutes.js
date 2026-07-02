@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const GerminationRecordController = require("../controllers/germinationRecordController");
 const { authenticate } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/roleMiddleware");
 
 // All routes require authentication
 router.use(authenticate);
@@ -19,9 +20,17 @@ router.get(
 );
 
 // POST create new germination record
-router.post("/", GerminationRecordController.create);
+router.post(
+  "/",
+  authorize("admin", "researcher", "staff"),
+  GerminationRecordController.create
+);
 
 // DELETE germination record
-router.delete("/:id", GerminationRecordController.delete);
+router.delete(
+  "/:id",
+  authorize("admin", "researcher"),
+  GerminationRecordController.delete
+);
 
 module.exports = router;

@@ -4,20 +4,46 @@ const { CROP_GROUPS } = require("../constants/cropCatalog");
 const UserModel = {
   // create
   // Insert new user with email, hashed password, name, and role assignment
-  async create(email, passwordHash, firstName, lastName, role = "guest") {
-    const query = `
-            INSERT INTO "user" (user_id, email, password, first_name, last_name, role, is_active, created_at)
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, true, NOW())
-            RETURNING user_id, email, first_name, last_name, role
-        `;
-    const result = await db.query(query, [
-      email,
-      passwordHash,
-      firstName,
-      lastName,
-      role,
-    ]);
-    return result.rows[0];
+  async create(email, passwordHash, firstName, lastName, role = "guest", cropGroups = []) {
+    const client = await db.getClient();
+    try {
+      await client.query("BEGIN");
+
+      const query = `
+        INSERT INTO "user" (user_id, email, password, first_name, last_name, role, is_active, created_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, true, NOW())
+        RETURNING user_id, email, first_name, last_name, role
+      `;
+      const result = await client.query(query, [
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        role,
+      ]);
+      const user = result.rows[0];
+
+      if (user.role !== "admin" && Array.isArray(cropGroups) && cropGroups.length > 0) {
+        const { CROP_GROUPS } = require("../constants/cropCatalog");
+        const validGroups = cropGroups.filter((g) => CROP_GROUPS.includes(g));
+
+        if (validGroups.length > 0) {
+          await client.query(
+            `INSERT INTO user_crop_group (user_id, crop_group)
+             SELECT $1::uuid, UNNEST($2::crop_group[])`,
+            [user.user_id, validGroups]
+          );
+        }
+      }
+
+      await client.query("COMMIT");
+      return user;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   },
 
   // findByEmail

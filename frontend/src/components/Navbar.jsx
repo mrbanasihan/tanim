@@ -43,17 +43,12 @@ const Navbar = () => {
     const featureAccess = {
       admin: ["seeds", "transactions", "reports", "notifications", "all"],
       researcher: ["seeds", "transactions", "notifications"],
-      staff: ["seeds", "transactions", "notifications"],
-      guest: ["seeds", "transactions"],
+      staff: ["seeds", "transactions", "reports", "notifications"],
+      guest: ["seeds", "transactions", "reports"],
     };
     return featureAccess[user?.role]?.includes(feature) || false;
   };
-
-  const canCreateSeed = () =>
-    ["admin", "researcher", "staff"].includes(user?.role);
-  const canAddTransaction = () =>
-    ["admin", "researcher", "staff", "guest"].includes(user?.role);
-  const canAccessReports = () => ["admin", "researcher"].includes(user?.role);
+  const canAccessReports = () => ["admin", "researcher", "staff", "guest"].includes(user?.role);
   const showNotificationBell = () => user?.role !== "guest";
   const showCropGroupSwitcher = user?.role !== "guest";
 
@@ -95,7 +90,7 @@ const Navbar = () => {
                 Dashboard
               </Link>
 
-              {user?.role !== "guest" && canAccessFeature("seeds") && (
+              {canAccessFeature("seeds") && (
                 <Link
                   to="/seeds"
                   className={`relative text-base font-medium transition-all duration-200 ${
@@ -119,6 +114,16 @@ const Navbar = () => {
                 </Link>
               )}
 
+              <Link
+                to="/projects"
+               className={`relative text-base font-medium transition-all duration-200 ${
+                    isActive("/projects")
+                    ? "text-white border-b-2 border-white"
+                    : "text-white/75 hover:text-white"
+                }`}>
+                Projects
+              </Link>
+
               {canAccessReports() && (
                 <Link
                   to="/reports"
@@ -131,15 +136,6 @@ const Navbar = () => {
                 </Link>
               )}
 
-              <Link
-                to="/projects"
-               className={`relative text-base font-medium transition-all duration-200 ${
-                    isActive("/projects")
-                    ? "text-white border-b-2 border-white"
-                    : "text-white/75 hover:text-white"
-                }`}>
-                Projects
-              </Link>
             </div>
           </div>
           <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
@@ -258,7 +254,7 @@ const Navbar = () => {
             >
               Dashboard
             </Link>
-            {user?.role !== "guest" && (
+            {canAccessFeature("seeds") && (
               <Link
                 to="/seeds"
                 className={`${
@@ -287,19 +283,6 @@ const Navbar = () => {
               Transactions
             </Link>
             <Link
-              to="/reports"
-              className={`${
-                isActive("/reports")
-                  ? "bg-green-700 text-white"
-                  : "text-green-100 hover:bg-green-700 hover:text-white"
-              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-              onClick={() =>
-                document.getElementById("mobile-menu").classList.add("hidden")
-              }
-            >
-              Reports
-            </Link>
-            <Link
               to="/projects"
               className={`${
                 isActive("/projects")
@@ -311,6 +294,19 @@ const Navbar = () => {
               }
             >
               Projects
+            </Link>
+            <Link
+              to="/reports"
+              className={`${
+                isActive("/reports")
+                  ? "bg-green-700 text-white"
+                  : "text-green-100 hover:bg-green-700 hover:text-white"
+              } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
+              onClick={() =>
+                document.getElementById("mobile-menu").classList.add("hidden")
+              }
+            >
+              Reports
             </Link>
             <div className="pt-4 pb-3 border-t border-green-700">
               <div className="flex items-center px-3">
