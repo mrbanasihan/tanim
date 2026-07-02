@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 import { Pencil, Trash2 } from "lucide-react";
+import TransactionForm from "../components/TransactionForm";
 
 // TransactionHistory
 // Displays transaction history with filtering and sorting by type, seed lot, crop type, and variety
@@ -26,6 +27,8 @@ const TransactionHistory = () => {
   const [cropTypes, setCropTypes] = useState([]);
   const [varieties, setVarieties] = useState([]);
   const [cropVarietyMap, setCropVarietyMap] = useState({});
+  const [showTxModal, setShowTxModal] = useState(false);
+  const [editingTxId, setEditingTxId] = useState(null);
   const navigate = useNavigate();
   const canManageTransactionActions = ["admin", "researcher"].includes(
     user?.role,
@@ -497,8 +500,11 @@ const TransactionHistory = () => {
                   </>
                 )}
                 <button
-                  onClick={() => navigate("/transactions/new")}
-                  className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md"
+                  onClick={() => {
+                    setEditingTxId(null);
+                    setShowTxModal(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md cursor-pointer"
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -924,10 +930,11 @@ const TransactionHistory = () => {
                                     {canManageTransactionActions && (
                                       <div className="flex items-center gap-3">
                                         <button
-                                          onClick={() =>
-                                            navigate(`/transactions/${transaction.id}/edit`)
-                                          }
-                                          className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
+                                          onClick={() => {
+                                            setEditingTxId(transaction.id);
+                                            setShowTxModal(true);
+                                          }}
+                                          className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
                                           title="Edit"
                                         >
                                           <Pencil size={18} />
@@ -1123,10 +1130,11 @@ const TransactionHistory = () => {
                                     {canManageTransactionActions && (
                                     <div className="flex items-center gap-1">
                                       <button
-                                        onClick={() =>
-                                          navigate(`/transactions/${transaction.id}/edit`)
-                                        }
-                                        className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
+                                        onClick={() => {
+                                          setEditingTxId(transaction.id);
+                                          setShowTxModal(true);
+                                        }}
+                                        className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
                                         title="Edit"
                                       >
                                         <Pencil size={18} />
@@ -1253,6 +1261,17 @@ const TransactionHistory = () => {
               </div>
             )}
         </div>
+        
+        {/* Transaction Add/Edit Modal Form */}
+        <TransactionForm
+          isOpen={showTxModal}
+          transactionId={editingTxId}
+          onClose={() => setShowTxModal(false)}
+          onSaveSuccess={() => {
+            setShowTxModal(false);
+            fetchTransactions();
+          }}
+        />
     </div>
   );
 };

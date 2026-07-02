@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { canAccessFeature } from "../utils/accessControl";
@@ -7,12 +6,10 @@ import { CROP_CATALOG, getSelectedCropGroup } from "../constants/cropCatalog";
 import { toTitleCase } from "../utils/textFormat";
 
 // SeedForm
-// Form to create or edit seed lots; interacts with seeds and projects APIs, enforces role-based access control
-const SeedForm = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const isEditing = !!id;
+// Modal to create or edit seed lots; interacts with seeds and projects APIs, enforces role-based access control
+const SeedForm = ({ isOpen, seedId, onClose, onSaveSuccess }) => {
+  const { user } = useAuth();
+  const isEditing = !!seedId;
   const canManageSeeds = canAccessFeature(user?.role, "create_seed");
 
   const [formData, setFormData] = useState({
@@ -51,32 +48,32 @@ const SeedForm = () => {
   ];
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
-    if (!user) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    if (user.role === "guest") {
-      navigate("/dashboard", { replace: true });
-      return;
-    }
-
-    if (!canManageSeeds) {
-      navigate("/seeds", { replace: true });
-      return;
-    }
+    if (!isOpen) return;
 
     fetchProjects();
     fetchAreaOptions();
     fetchRooms();
+    
     if (isEditing) {
       fetchSeed();
+    } else {
+      setFormData({
+        crop_type: "",
+        variety: "",
+        classification: "",
+        has_project: false,
+        project_id: "",
+        moisture_content: "",
+        gross_weight: "",
+        cleaned_quantity: "",
+        area_planted: "",
+        storage_area: "",
+        remarks: "",
+      });
+      setAreaPlantedOther("");
+      setError("");
     }
-  }, [authLoading, canManageSeeds, isEditing, navigate, user]);
+  }, [isOpen, seedId, user]);
 
   const fetchProjects = async () => {
     try {
@@ -124,7 +121,7 @@ const SeedForm = () => {
 
   const fetchSeed = async () => {
     try {
-      const response = await api.get(`/seeds/${id}`);
+      const response = await api.get(`/seeds/${seedId}`);
       const data = response.data;
       setFormData({
         crop_type: data.crop_type,
@@ -146,8 +143,6 @@ const SeedForm = () => {
     }
   };
 
-  // handleChange
-  // Handles form field changes and updates form data state
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const sanitizedValue = type === "checkbox" ? checked : value;
@@ -171,8 +166,6 @@ const SeedForm = () => {
     setFormData(newFormData);
   };
 
-  // handleSubmit
-  // Validates and submits seed form data to create or update seed lot
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -204,7 +197,7 @@ const SeedForm = () => {
 
     try {
       if (isEditing) {
-        await api.put(`/seeds/${id}`, submitData);
+        await api.put(`/seeds/${seedId}`, submitData);
       } else {
         await api.post("/seeds", submitData);
       }
@@ -217,7 +210,7 @@ const SeedForm = () => {
         });
       }
 
-      navigate("/seeds");
+      if (onSaveSuccess) onSaveSuccess();
     } catch (error) {
       console.error("Error saving seed:", error);
       console.error("Full error response:", error.response?.data);
@@ -237,16 +230,29 @@ const SeedForm = () => {
     }
   };
 
-  return (
-    <div>
-      {authLoading && <div className="text-center py-8">Loading...</div>}
-      {!authLoading && (!user || user.role === "guest") && null}
-      <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? "Edit Seed Lot" : "Add New Seed Lot"}
-      </h1>
+  if (!isOpen) return null;
 
-      <div className="bg-white p-6 rounded-lg shadow max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-100 flex flex-col">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50 sticky top-0 bg-white z-10">
+          <h2 className="text-xl font-bold text-gray-800">
+            {isEditing ? "Edit Seed Lot" : "Add New Seed Lot"}
+          </h2>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none p-1 rounded-lg hover:bg-gray-100"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Modal Body / Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Crop Type
@@ -256,7 +262,7 @@ const SeedForm = () => {
               value={formData.crop_type}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             >
               <option value="">Select Crop Type</option>
               {cropTypes.map((type) => (
@@ -277,7 +283,7 @@ const SeedForm = () => {
               onChange={handleChange}
               required
               disabled={!formData.crop_type}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B] disabled:bg-gray-100"
             >
               <option value="">Select Variety</option>
               {formData.crop_type &&
@@ -298,7 +304,7 @@ const SeedForm = () => {
               value={formData.classification}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             >
               <option value="">Select Classification</option>
               {classifications.map((c) => (
@@ -310,13 +316,13 @@ const SeedForm = () => {
           </div>
 
           <div>
-            <label className="flex items-center">
+            <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
               <input
                 type="checkbox"
                 name="has_project"
                 checked={formData.has_project}
                 onChange={handleChange}
-                className="mr-2"
+                className="mr-2 rounded border-gray-300 text-[#116B2B] focus:ring-[#116B2B]"
               />
               Associated with a project
             </label>
@@ -331,7 +337,7 @@ const SeedForm = () => {
                 name="project_id"
                 value={formData.project_id}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
               >
                 <option value="">Select Project</option>
                 {projects.map((p) => (
@@ -356,7 +362,7 @@ const SeedForm = () => {
               min="0"
               max="100"
               inputMode="decimal"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             />
           </div>
 
@@ -373,7 +379,7 @@ const SeedForm = () => {
               inputMode="decimal"
               required={!isEditing}
               readOnly={isEditing}
-              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEditing ? "bg-gray-100 text-gray-600" : ""}`}
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B] ${isEditing ? "bg-gray-100 text-gray-600" : ""}`}
             />
             {isEditing && (
               <p className="text-xs text-gray-500 mt-1">
@@ -394,7 +400,7 @@ const SeedForm = () => {
               step="0.01"
               min="0"
               inputMode="decimal"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             />
           </div>
 
@@ -406,11 +412,10 @@ const SeedForm = () => {
               type="number"
               value={formData.cleaned_quantity || formData.gross_weight || ""}
               readOnly
-              className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 text-gray-600"
+              className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 text-gray-600 focus:outline-none"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Auto-set from cleaned quantity, or gross weight if cleaned is
-              empty.
+              Auto-set from cleaned quantity, or gross weight if cleaned is empty.
             </p>
           </div>
 
@@ -423,7 +428,7 @@ const SeedForm = () => {
                 name="area_planted"
                 value={formData.area_planted}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
               >
                 <option value="">Select Area Planted</option>
                 {areaOptions.map((area) => (
@@ -441,7 +446,7 @@ const SeedForm = () => {
                   value={areaPlantedOther}
                   onChange={(e) => setAreaPlantedOther(e.target.value)}
                   placeholder="Enter area planted"
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
                 />
               )}
             </div>
@@ -455,7 +460,7 @@ const SeedForm = () => {
               name="storage_area"
               value={formData.storage_area}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             >
               <option value="">Select Storage Area</option>
               {rooms.map((r) => (
@@ -476,12 +481,12 @@ const SeedForm = () => {
               value={formData.remarks}
               onChange={handleChange}
               rows="3"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-6">
+            <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-2">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
@@ -503,20 +508,20 @@ const SeedForm = () => {
             </div>
           )}
 
-          <div className="flex space-x-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-[#116B2B] text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+              className="bg-[#116B2B] hover:bg-[#0e5c24] text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? "Saving..." : isEditing ? "Update" : "Create"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/seeds")}
-              className="bg-[#3fa232] text-white font-bold py-2 px-4 rounded"
-            >
-              Cancel
             </button>
           </div>
         </form>

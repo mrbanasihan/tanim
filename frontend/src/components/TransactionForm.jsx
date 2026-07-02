@@ -1,19 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 
 // TransactionForm
-// Form to create or edit seed transactions (check-out or disposal); interacts with transactions and seeds APIs
-const TransactionForm = () => {
+// Modal to create or edit seed transactions (check-out or disposal); interacts with transactions and seeds APIs
+const TransactionForm = ({ isOpen, transactionId, seedLotId, onClose, onSaveSuccess }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const seedLotId = searchParams.get("seed_lot_id");
-  const isEditing = Boolean(id);
+  const isEditing = Boolean(transactionId);
 
   const [formData, setFormData] = useState({
     type: "check-out",
@@ -35,11 +30,25 @@ const TransactionForm = () => {
   );
 
   useEffect(() => {
+    if (!isOpen) return;
+
     fetchSeedLots();
     if (isEditing) {
       fetchTransaction();
+    } else {
+      setFormData({
+        type: "check-out",
+        seed_id: seedLotId || "",
+        quantity: "",
+        recipient: "",
+        purpose: "",
+        affiliation: "",
+        contact: "",
+        remarks: "",
+      });
+      setError("");
     }
-  }, [user?.role, user?.crop_groups, isEditing, id]);
+  }, [isOpen, transactionId, seedLotId, user]);
 
   useEffect(() => {
     if (seedLots.length > 0 && formData.seed_id) {
@@ -60,7 +69,7 @@ const TransactionForm = () => {
 
   const fetchTransaction = async () => {
     try {
-      const response = await api.get(`/transactions/${id}`);
+      const response = await api.get(`/transactions/${transactionId}`);
       const tx = response.data;
 
       setFormData({
@@ -92,21 +101,16 @@ const TransactionForm = () => {
     }
   };
 
-  // handleChange
-  // Updates form data and syncs selected seed quantity
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Handle contact number formatting
     let formattedValue = value;
     if (name === "contact") {
       formattedValue = value.replace(/\D/g, "").slice(0, 11);
     }
 
-    // Update form data
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
 
-    // Update selected seed quantity when seed_id changes
     if (name === "seed_id" && value) {
       const selectedSeed = seedLots.find((seed) => seed.seed_id === value);
       if (selectedSeed) {
@@ -117,8 +121,6 @@ const TransactionForm = () => {
     }
   };
 
-  // handleSubmit
-  // Validates and submits transaction form; creates check-out or disposal transaction
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -140,8 +142,8 @@ const TransactionForm = () => {
           remarks: formData.remarks,
         };
 
-        await api.put(`/transactions/${id}`, payload);
-        navigate("/transactions");
+        await api.put(`/transactions/${transactionId}`, payload);
+        if (onSaveSuccess) onSaveSuccess();
         return;
       }
 
@@ -175,7 +177,7 @@ const TransactionForm = () => {
 
       await api.post(endpoint, payload);
 
-      navigate("/transactions");
+      if (onSaveSuccess) onSaveSuccess();
     } catch (error) {
       console.error("Error creating transaction:", error);
       setError(
@@ -188,14 +190,29 @@ const TransactionForm = () => {
     }
   };
 
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? "Edit Transaction" : "New Transaction"}
-      </h1>
+  if (!isOpen) return null;
 
-      <div className="bg-white p-6 rounded-lg shadow max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-100 flex flex-col">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50 sticky top-0 bg-white z-10">
+          <h2 className="text-xl font-bold text-gray-800">
+            {isEditing ? "Edit Transaction" : "New Transaction"}
+          </h2>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none p-1 rounded-lg hover:bg-gray-100"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Modal Body / Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Transaction Type
@@ -206,7 +223,7 @@ const TransactionForm = () => {
               onChange={handleChange}
               required
               disabled={isEditing}
-              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B] ${
                 isEditing
                   ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                   : "bg-white"
@@ -232,7 +249,7 @@ const TransactionForm = () => {
               onChange={handleChange}
               required
               disabled={isEditing}
-              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B] ${
                 isEditing
                   ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                   : "bg-white"
@@ -267,7 +284,7 @@ const TransactionForm = () => {
               step="0.01"
               inputMode="decimal"
               readOnly={isEditing}
-              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B] ${
                 isEditing
                   ? "bg-gray-200 text-gray-600 cursor-not-allowed"
                   : "bg-white"
@@ -297,7 +314,7 @@ const TransactionForm = () => {
                       parseFloat(formData.quantity) >
                         (selectedSeedQuantity || 0)
                         ? "text-red-600"
-                        : "text-green-600"
+                        : "text-[#116B2B]"
                     }`}
                   >
                     {(
@@ -329,7 +346,7 @@ const TransactionForm = () => {
                   value={formData.recipient}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
                 />
               </div>
               <div>
@@ -342,7 +359,7 @@ const TransactionForm = () => {
                   value={formData.purpose}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
                 />
               </div>
               <div>
@@ -354,7 +371,7 @@ const TransactionForm = () => {
                   name="affiliation"
                   value={formData.affiliation}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
                 />
               </div>
               <div>
@@ -370,7 +387,7 @@ const TransactionForm = () => {
                   maxLength={11}
                   pattern="09[0-9]{9}"
                   title="Contact number must be 11 digits and start with 09"
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
                 />
               </div>
             </>
@@ -387,7 +404,7 @@ const TransactionForm = () => {
                 value={formData.purpose}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
               />
             </div>
           )}
@@ -401,32 +418,32 @@ const TransactionForm = () => {
               value={formData.remarks}
               onChange={handleChange}
               rows="3"
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#116B2B]"
             />
           </div>
 
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
 
-          <div className="flex space-x-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-[#116B2B] text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+              className="bg-[#116B2B] hover:bg-[#0e5c24] text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
             >
               {loading
                 ? isEditing
                   ? "Updating..."
                   : "Creating..."
                 : isEditing
-                  ? "Update Transaction"
-                  : "Create Transaction"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/transactions")}
-              className="bg-[#3fa232] text-white font-bold py-2 px-4 rounded"
-            >
-              Cancel
+                  ? "Update"
+                  : "Create"}
             </button>
           </div>
         </form>

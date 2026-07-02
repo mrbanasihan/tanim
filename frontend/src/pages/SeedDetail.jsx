@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import SeedForm from "../components/SeedForm";
+import TransactionForm from "../components/TransactionForm";
 
 // SeedDetail
 // Displays detailed information for a seed lot including transactions and germination records; interacts with seeds, transactions, and germination APIs
@@ -16,6 +18,8 @@ const SeedDetail = () => {
   const [loading, setLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
   const canEditSeed = ["admin", "staff"].includes(user?.role);
   const canDeleteSeed = user?.role === "admin";
 
@@ -153,9 +157,9 @@ const SeedDetail = () => {
               </Link>
 
               {canEditSeed && (
-                <Link
-                  to={`/seeds/${id}/edit`}
-                  className="bg-[#237F18] hover:bg-[#1b6513] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="bg-[#237F18] hover:bg-[#1b6513] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2 cursor-pointer"
                 >
                   <svg
                     className="w-5 h-5"
@@ -171,7 +175,7 @@ const SeedDetail = () => {
                     />
                   </svg>
                   <span>Edit</span>
-                </Link>
+                </button>
               )}
 
               {canDeleteSeed && (
@@ -399,9 +403,9 @@ const SeedDetail = () => {
             <h2 className="text-xl font-semibold text-slate-900">
               Transaction History
             </h2>
-            <Link
-              to={`/transactions/new?seed_lot_id=${id}`}
-              className="bg-[#86B839] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2"
+            <button
+              onClick={() => setShowTxModal(true)}
+              className="bg-[#86B839] text-white font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2 cursor-pointer"
             >
               <svg
                 className="w-5 h-5"
@@ -417,7 +421,7 @@ const SeedDetail = () => {
                 />
               </svg>
               <span>Add Transaction</span>
-            </Link>
+            </button>
           </div>
 
           {transactions.length === 0 ? (
@@ -629,6 +633,28 @@ const SeedDetail = () => {
           )}
         </div>
       </div>
+      
+      {/* Seed Edit Modal Form */}
+      <SeedForm
+        isOpen={showEditModal}
+        seedId={id}
+        onClose={() => setShowEditModal(false)}
+        onSaveSuccess={() => {
+          setShowEditModal(false);
+          fetchSeedData();
+        }}
+      />
+
+      {/* Transaction Add Modal Form */}
+      <TransactionForm
+        isOpen={showTxModal}
+        seedLotId={id}
+        onClose={() => setShowTxModal(false)}
+        onSaveSuccess={() => {
+          setShowTxModal(false);
+          fetchSeedData();
+        }}
+      />
     </div>
   );
 };

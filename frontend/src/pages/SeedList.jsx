@@ -6,6 +6,7 @@ import { filterByCropGroup } from "../utils/accessControl";
 import { toTitleCase } from "../utils/textFormat";
 import { getSelectedCropGroup, FAMILY_GROUPS, CROP_PROJECTS, CROP_CATALOG } from "../constants/cropCatalog";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import SeedForm from "../components/SeedForm";
 
 // SeedList
 // Lists all seed lots with filtering by crop type, variety, and project; interacts with seeds API and access control
@@ -626,9 +627,12 @@ const SeedList = () => {
                 </div>
               )}
             {["admin", "researcher", "staff"].includes(user?.role) && (
-              <Link
-                to="/seeds/new"
-                className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md"
+              <button
+                onClick={() => {
+                  setEditingSeedId(null);
+                  setShowSeedModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 bg-[#D4AF17] hover:bg-[#e8c237] text-white font-medium rounded-lg transition duration-200 shadow-sm hover:shadow-md cursor-pointer"
               >
                 <svg
                   className="w-5 h-5 mr-2"
@@ -644,7 +648,7 @@ const SeedList = () => {
                 />
                 </svg>
                 Add New Seed Lot
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -1221,13 +1225,16 @@ const SeedList = () => {
 
                         {["admin", "researcher"].includes(user?.role) && (
                           <>
-                            <Link
-                              to={`/seeds/${seed.seed_id}/edit`}
-                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
+                            <button
+                              onClick={() => {
+                                setEditingSeedId(seed.seed_id);
+                                setShowSeedModal(true);
+                              }}
+                              className="p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
                               title="Edit"
                             >
                               <Pencil size={18} />
-                            </Link>
+                            </button>
 
                             <button
                               onClick={() => handleDelete(seed.seed_id)}
@@ -1372,6 +1379,17 @@ const SeedList = () => {
           </div>
         </div>
       )}
+
+      {/* Seed Add/Edit Modal Form */}
+      <SeedForm
+        isOpen={showSeedModal}
+        seedId={editingSeedId}
+        onClose={() => setShowSeedModal(false)}
+        onSaveSuccess={() => {
+          setShowSeedModal(false);
+          fetchSeeds();
+        }}
+      />
     </div>
   );
 };

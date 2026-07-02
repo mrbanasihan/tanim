@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -7,11 +7,11 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import SeedList from "./pages/SeedList";
-import SeedForm from "./pages/SeedForm";
+import SeedForm from "./components/SeedForm";
 import SeedDetail from "./pages/SeedDetail";
 import GerminationRecordForm from "./pages/GerminationRecordForm";
 import TransactionHistory from "./pages/TransactionHistory";
-import TransactionForm from "./pages/TransactionForm";
+import TransactionForm from "./components/TransactionForm";
 import NotificationsPage from "./pages/NotificationsPage";
 import Reports from "./pages/Reports";
 
@@ -44,13 +44,7 @@ function App() {
           />
           <Route
             path="/seeds/new"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <SeedForm />
-                </Layout>
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/seeds" replace />}
           />
           <Route
             path="/seeds/:id"
@@ -64,13 +58,7 @@ function App() {
           />
           <Route
             path="/seeds/:id/edit"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <SeedForm />
-                </Layout>
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/seeds" replace />}
           />
           <Route
             path="/seeds/:seedId/germination"
@@ -94,23 +82,11 @@ function App() {
           />
           <Route
             path="/transactions/new"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <TransactionForm />
-                </Layout>
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/transactions" replace />}
           />
           <Route
             path="/transactions/:id/edit"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <TransactionForm />
-                </Layout>
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/transactions" replace />}
           />
           <Route
             path="/notifications"
