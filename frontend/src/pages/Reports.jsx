@@ -414,7 +414,7 @@ const Reports = () => {
             });
           });
         });
-        rows.sort((a, b) => parseFloat(b.value) - parseFloat(a.value));
+        rows.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }));
         return {
           headers: ["Crop & Variety", "Stock Quantity"],
           rows,
@@ -517,7 +517,7 @@ const Reports = () => {
     scales: {
       x: {
         ticks: { 
-          color: "#64748B",
+          color: "#1B5E20",
           font: { size: 12, weight: "600" }, 
           maxRotation: 0, 
           minRotation: 0 
@@ -534,7 +534,7 @@ const Reports = () => {
     scales: {
       x: {
         ticks: { 
-          color: "#64748B",
+          color: "#1B5E20",
           font: { size: 11, weight: "600" }, 
           maxRotation: 45, 
           minRotation: 0,
@@ -759,7 +759,7 @@ const Reports = () => {
                 {/* Dynamic Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-[#E0E0E0]">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800">
+                    <h2 className="text-2xl font-bold" style={{ color: "#1B5E20" }}>
                       {REPORTS_NAV.find(r => r.id === activeReport)?.label}
                     </h2>
                     <span 

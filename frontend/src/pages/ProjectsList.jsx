@@ -224,10 +224,10 @@ const ProjectsList = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header Panel */}
       <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+       <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold mb-1" style={{ color: "#1B5E20" }}>
               Projects
@@ -482,14 +482,14 @@ const ProjectsList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/75">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Project Code
                 </th>
                 <th 
                   onClick={() => handleHeaderClick("name")}
-                  className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
+                  className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5">
                     <span>Project Name</span>
                     {sortType === "name" ? (
                       <span className="text-[#116B2B]">{sortOrder === "asc" ? "▲" : "▼"}</span>
@@ -498,20 +498,20 @@ const ProjectsList = () => {
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Crop Groups
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th 
                   onClick={() => handleHeaderClick("date")}
-                  className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
+                  className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5">
                     <span>Duration</span>
                     {sortType === "date" ? (
                       <span className="text-[#116B2B]">{sortOrder === "asc" ? "▲" : "▼"}</span>
@@ -521,7 +521,7 @@ const ProjectsList = () => {
                   </div>
                 </th>
                 {canManageProjects && (
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 )}
@@ -587,7 +587,7 @@ const ProjectsList = () => {
                               setEditingProjectId(project.project_id);
                               setShowProjectsModal(true);
                             }}
-                            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#116B2B] transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
                             title="Edit Project"
                           >
                             <Pencil size={18} />
