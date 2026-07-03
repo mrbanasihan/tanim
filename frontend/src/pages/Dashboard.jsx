@@ -219,10 +219,8 @@ function Dashboard() {
     >
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
-        {/* ══════════════════ LEFT — MAIN CONTENT ══════════════════ */}
+        {/* LEFT CONTENT  */}
         <div className="flex flex-col gap-6 min-w-0">
-
-          {/* Welcome Banner */}
           <div
             className="rounded-xl px-7 py-6 shadow-sm border border-[#E0E0E0]"
             style={{ backgroundColor: "#FFFFFF" }}

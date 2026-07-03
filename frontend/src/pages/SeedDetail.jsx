@@ -131,9 +131,20 @@ const SeedDetail = () => {
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: "#1B5E20" }}>
-              Seed Lot Details
-            </h1>
+            <div>
+              <Link
+                to="/seeds"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-[#116B2B] transition-colors mb-3 group"
+              >
+                <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Seed Lots
+              </Link>
+              <h1 className="text-2xl font-bold mb-1" style={{ color: "#1B5E20" }}>
+                Seed Lot Details
+              </h1>
+            </div>
 
             <div className="flex space-x-3">
               {user?.role !== "guest" && (

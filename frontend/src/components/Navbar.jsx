@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import ipbLogo from "../assets/ipbLogo.png";
 import tanimLogo from "../assets/tanimLogo.png";
+import cafsLogo from "../assets/cafsLogo.png";
 
 // Navbar
 // Navigation bar with links, crop group switcher, and user menu; interacts with AuthContext and manages crop group selection
@@ -68,6 +69,7 @@ const Navbar = () => {
                   to="/"
                   className="flex items-center gap-3 text-white"
                 >
+                  <img src={cafsLogo} alt="CAFS Logo" className="w-10 h-10 object-contain" />
                   <img src={ipbLogo} alt="IPB Logo" className="w-10 h-10 object-contain" />
                   <img src={tanimLogo} alt="TANIM Logo" className="w-10 h-10 object-contain" />
                 <span className="text-2xl font-bold tracking-wide text-white">
@@ -162,49 +164,47 @@ const Navbar = () => {
                   </p>
                 </div>
               </div>
-            {/* Drop down Crop Group*/}
-             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#116B2B] shadow-xl border border-white/10 overflow-hidden z-50">
-
-                {showCropGroupSwitcher && (
-                  <div className="px-4 py-3 border-b border-white/10">
-                    <p className="text-xs uppercase tracking-wide text-green-200 font-semibold mb-2">
-                      Crop Group
-                    </p>
-
-                    <div className="space-y-1">
-                      {availableCropGroups.length > 1 ? (
-                        availableCropGroups.map((group) => (
-                          <button
-                            key={group}
-                            onClick={() => handleSwitchCropGroup(group)}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                              currentCropGroup === group
-                                ? "bg-white text-[#116B2B] font-semibold"
-                                : "text-white hover:bg-white/10"
-                            }`}
-                          >
-                            {group.charAt(0).toUpperCase() + group.slice(1)}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 rounded-lg text-sm text-white bg-white/10">
-                          {currentCropGroup.charAt(0).toUpperCase() +
-                            currentCropGroup.slice(1)}
-                        </div>
-                      )}
+              {/* Drop down Crop Group */}
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-xl shadow-xl border border-white/10 overflow-hidden z-60" style={{ backgroundColor: "#A4CA0A" }}>
+                  {showCropGroupSwitcher && (
+                    <div className="px-4 py-3 border-b border-white/20">
+                      <p className="text-xs uppercase tracking-wide text-white font-semibold mb-2">
+                        Crop Group
+                      </p>
+                      <div className="space-y-1">
+                        {availableCropGroups.length > 1 ? (
+                          availableCropGroups.map((group) => (
+                            <button
+                              key={group}
+                              onClick={() => handleSwitchCropGroup(group)}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                                currentCropGroup === group
+                                  ? "bg-white/20 text-white font-semibold"
+                                  : "text-white hover:bg-white/15"
+                              }`}
+                            >
+                              {group.charAt(0).toUpperCase() + group.slice(1)}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 rounded-lg text-sm text-white bg-white/10">
+                            {currentCropGroup.charAt(0).toUpperCase() +
+                              currentCropGroup.slice(1)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-3 text-red-300 hover:bg-white/10 hover:text-red-200 transition-all duration-200"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-3 hover:bg-white/15 transition-all duration-200 font-semibold"
+                    style={{ color: "#126B2C" }}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

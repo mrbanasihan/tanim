@@ -95,7 +95,7 @@ const NotificationBell = () => {
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative text-green-200 hover:text-white transition-colors duration-200 p-2"
+        className="relative text-white hover:text-green-200 transition-colors duration-200 p-2"
         title="Notifications"
       >
         <svg
@@ -122,7 +122,7 @@ const NotificationBell = () => {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-40 max-h-96 overflow-y-auto">
           <div className="sticky top-0 bg-gray-100 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
             <h3 className="text-sm font-semibold text-gray-900">
               Notifications
