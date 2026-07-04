@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { toTitleCase } from "../utils/textFormat";
-import { Pencil, Trash2, Plus, Calendar } from "lucide-react";
+import { Pencil, Trash2, Plus, Calendar, Eye } from "lucide-react";
 import ProjectsForm from "../components/ProjectsForm";
 
 const ProjectsList = () => {
@@ -22,6 +22,8 @@ const ProjectsList = () => {
 
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingProject, setViewingProject] = useState(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -477,111 +479,53 @@ const ProjectsList = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden w-full">
+        <div className="overflow-x-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/75">
               <tr>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Project Code
-                </th>
-                <th 
-                  onClick={() => handleHeaderClick("name")}
-                  className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Project Name</span>
-                    {sortType === "name" ? (
-                      <span className="text-[#116B2B]">{sortOrder === "asc" ? "▲" : "▼"}</span>
-                    ) : (
-                      <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">▲</span>
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Crop Groups
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Project Details
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th 
-                  onClick={() => handleHeaderClick("date")}
-                  className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-[#116B2B] group"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Duration</span>
-                    {sortType === "date" ? (
-                      <span className="text-[#116B2B]">{sortOrder === "asc" ? "▲" : "▼"}</span>
-                    ) : (
-                      <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">▲</span>
-                    )}
-                  </div>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
-                {canManageProjects && (
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {currentProjects.length > 0 ? (
                 currentProjects.map((project) => (
                   <tr key={project.project_id} className="hover:bg-slate-50/50 transition duration-150">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
+                    {/* Project Details column */}
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-semibold text-gray-900">{toTitleCase(project.project_name)}</p>
                       {project.project_code ? (
-                        <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-md text-xs font-mono">
-                          {project.project_code}
-                        </span>
+                        <p className="text-xs text-gray-500 mt-0.5 font-mono">{project.project_code}</p>
                       ) : (
-                        <span className="text-gray-400 italic">No code</span>
+                        <p className="text-xs text-gray-400 italic mt-0.5">No code</p>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {toTitleCase(project.project_name)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={project.description}>
-                      {project.description || <span className="text-gray-400 italic">No description</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap gap-1">
-                        {Array.isArray(project.crop_groups) && project.crop_groups.length > 0 ? (
-                          project.crop_groups.map((group) => (
-                            <span
-                              key={group}
-                              className={`px-2 py-0.5 border rounded-full text-xs font-medium ${getCropGroupBadgeStyle(group)}`}
-                            >
-                              {toTitleCase(group)}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-400 italic text-xs">None</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(getProjectStatus(project))}`}>
                         {toTitleCase(getProjectStatus(project))}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>
-                          {project.start_date || project.end_date ? (
-                            `${formatDate(project.start_date) || "Start"} - ${formatDate(project.end_date) || "Present"}`
-                          ) : (
-                            <span className="text-gray-400 italic">Ongoing</span>
-                          )}
-                        </span>
-                      </div>
-                    </td>
-                    {canManageProjects && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-3">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setViewingProject(project);
+                            setShowViewModal(true);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#116B2B] transition-colors cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        {canManageProjects && (
                           <button
                             onClick={() => {
                               setEditingProjectId(project.project_id);
@@ -592,24 +536,24 @@ const ProjectsList = () => {
                           >
                             <Pencil size={18} />
                           </button>
-                          {canDeleteProjects && (
-                            <button
-                              onClick={() => handleDelete(project.project_id, project.project_name)}
-                              className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
-                              title="Delete Project"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
+                        )}
+                        {canDeleteProjects && (
+                          <button
+                            onClick={() => handleDelete(project.project_id, project.project_name)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
+                            title="Delete Project"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={canManageProjects ? 7 : 6}
+                    colSpan={3}
                     className="px-6 py-10 text-center text-gray-500 text-sm italic"
                   >
                     No projects found.
@@ -721,7 +665,7 @@ const ProjectsList = () => {
         </div>
       )}
 
-      {/* Modal Integration */}
+      {/* Edit / Create Modal */}
       <ProjectsForm
         isOpen={showProjectsModal}
         projectId={editingProjectId}
@@ -731,6 +675,92 @@ const ProjectsList = () => {
           fetchProjects();
         }}
       />
+
+      {/* Read-only Detail Modal */}
+      {showViewModal && viewingProject && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          onClick={() => setShowViewModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-gray-100 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+              <h2 className="text-lg font-bold text-gray-800">
+                {viewingProject.project_code
+                  ? `${viewingProject.project_code} — ${toTitleCase(viewingProject.project_name)}`
+                  : toTitleCase(viewingProject.project_name)}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowViewModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none p-1 rounded-lg hover:bg-gray-100"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5">
+              <hr className="border-gray-100" />
+
+              {/* Meta: Duration + Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Duration</p>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span>
+                      {viewingProject.start_date || viewingProject.end_date
+                        ? `${formatDate(viewingProject.start_date) || "Start"} – ${formatDate(viewingProject.end_date) || "Present"}`
+                        : <span className="italic text-gray-400">Ongoing</span>}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadgeStyle(getProjectStatus(viewingProject))}`}>
+                    {toTitleCase(getProjectStatus(viewingProject))}
+                  </span>
+                </div>
+              </div>
+
+              {/* Crop Groups */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Crop Groups</p>
+                {Array.isArray(viewingProject.crop_groups) && viewingProject.crop_groups.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingProject.crop_groups.map((group) => (
+                      <span
+                        key={group}
+                        className={`px-2.5 py-1 border rounded-full text-xs font-medium ${getCropGroupBadgeStyle(group)}`}
+                      >
+                        {toTitleCase(group)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No crop groups assigned</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Description</p>
+                {viewingProject.description ? (
+                  <p className="text-sm text-gray-700 leading-relaxed">{viewingProject.description}</p>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No description provided.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

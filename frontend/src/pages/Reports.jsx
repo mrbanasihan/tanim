@@ -189,57 +189,74 @@ const Reports = () => {
 
   const getVarietyDistributionData = () => {
     const varietyByType = {};
-    const cropTotals = {};
-    const varietyTotals = {};
 
     getFilteredSeeds().forEach((seed) => {
-      const crop = (seed.crop_type || "").trim();
+      const crop = (seed.crop_type || "").trim().toLowerCase();
       const variety = (seed.variety || "").trim();
       const quantity = Number(seed.current_quantity) || 0;
 
       if (!varietyByType[crop]) varietyByType[crop] = {};
       varietyByType[crop][variety] = (varietyByType[crop][variety] || 0) + quantity;
-
-      cropTotals[crop] = (cropTotals[crop] || 0) + quantity;
-      varietyTotals[variety] = (varietyTotals[variety] || 0) + quantity;
     });
 
-    const cropTypes = Object.keys(varietyByType).sort((a, b) => cropTotals[b] - cropTotals[a]);
-    const allVarieties = Object.keys(varietyTotals).sort((a, b) => varietyTotals[b] - varietyTotals[a]);
+    // Sort crops alphabetically: mungbean → peanut → soybean
+    const cropTypes = Object.keys(varietyByType).sort((a, b) => a.localeCompare(b));
 
-    const CROP_THEMES = {
-      soybean: ["#D4AF17", "#EBC844", "#F9E79F"],
-      mungbean: ["#3B7A24", "#5D9B43", "#82C16E"],
-      peanut: ["#5C3214", "#8B532B", "#C49268"],
+    // Helper: extract trailing number from a variety name for numeric sort
+    const getVarietyNumber = (name) => {
+      const match = name.match(/(\d+(?:\.\d+)?)$/);
+      return match ? parseFloat(match[1]) : Infinity;
     };
 
-    const varietyColors = {};
-    const cropColorIndex = {};
+    // Monochromatic gradient palettes per crop (light → dark)
+    const CROP_PALETTES = {
+      mungbean: [
+        "#A8D5A2", "#7EC87D", "#56B455", "#3A9E3A", "#2E8B2E",
+        "#237F23", "#1A6B1A", "#126B2C", "#0D5221", "#0B421A",
+      ],
+      soybean: [
+        "#FFF3B0", "#FFE566", "#F9D84A", "#F0C430", "#E6A817",
+        "#D4AF17", "#C49A0F", "#A87F09", "#8B6504", "#6B4D00",
+      ],
+      peanut: [
+        "#F5D9B5", "#E8C093", "#D4A46E", "#C08751", "#A86C38",
+        "#8B5321", "#6F3D10", "#5C3214", "#4A2510", "#381A0A",
+      ],
+    };
 
-    getFilteredSeeds().forEach((seed) => {
-      const variety = (seed.variety || "").trim();
-      if (!varietyColors[variety]) {
-        const crop = (seed.crop_type || "").trim().toLowerCase();
-        const themeGroup = CROP_THEMES[crop] || COLORS;
-        if (cropColorIndex[crop] === undefined) cropColorIndex[crop] = 0;
-        varietyColors[variety] = themeGroup[cropColorIndex[crop] % themeGroup.length];
-        cropColorIndex[crop]++;
-      }
+    const DEFAULT_PALETTE = ["#126B2C", "#237F18", "#D4AF17", "#105221", "#2B9E1E", "#EBC844", "#0B421B"];
+
+    // Build datasets in sorted crop → sorted-variety order for a clustered legend
+    const datasets = [];
+
+    cropTypes.forEach((crop) => {
+      const varieties = Object.keys(varietyByType[crop]).sort((a, b) => {
+        const na = getVarietyNumber(a);
+        const nb = getVarietyNumber(b);
+        if (na !== nb) return na - nb;
+        return a.localeCompare(b);
+      });
+
+      const palette = CROP_PALETTES[crop] || DEFAULT_PALETTE;
+
+      varieties.forEach((variety, idx) => {
+        const color = palette[idx % palette.length];
+        datasets.push({
+          label: variety,
+          data: cropTypes.map((c) => varietyByType[c]?.[variety] || 0),
+          backgroundColor: color,
+          borderColor: "#fff",
+          borderWidth: 1,
+        });
+      });
     });
-
-    const datasets = allVarieties.map((variety) => ({
-      label: variety,
-      data: cropTypes.map((crop) => varietyByType[crop]?.[variety] || 0),
-      backgroundColor: varietyColors[variety] || COLORS[0],
-      borderColor: "#fff",
-      borderWidth: 1,
-    }));
 
     return {
       labels: cropTypes,
       datasets,
     };
   };
+
 
   const getProjectDistributionData = () => {
     const projData = {};
